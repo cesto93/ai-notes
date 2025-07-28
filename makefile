@@ -1,5 +1,5 @@
 run:
-	uv run python -m streamlit run src/streamlit_ui.py
+	uv run python -m streamlit run src/ui.py
 coverage:
 	uv run pytest --cov=src --cov-report=html tests/
 docker-build:
