@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 
+
 def load_config(dotenv_path=".env"):
     """
     Loads environment variables from a .env file using python-dotenv.

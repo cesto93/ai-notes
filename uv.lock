@@ -16,6 +16,7 @@ dependencies = [
     { name = "dotenv" },
     { name = "langchain-core" },
     { name = "langchain-google-genai" },
+    { name = "pydantic" },
     { name = "streamlit" },
 ]
 
@@ -24,6 +25,7 @@ requires-dist = [
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "langchain-core", specifier = ">=0.3.72" },
     { name = "langchain-google-genai", specifier = ">=2.1.8" },
+    { name = "pydantic", specifier = ">=2.11.7" },
     { name = "streamlit", specifier = ">=1.47.1" },
 ]
 
