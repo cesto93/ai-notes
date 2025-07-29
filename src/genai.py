@@ -5,7 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 class NoteMetadata(BaseModel):
     """Data model for note metadata extracted from text."""
-    Argument: str = Field(..., description="The main argument or point of the note.")
+    Argument: str = Field(..., description="The main argument of the note. This should be a concise word categorizing the note")
     Tags: list[str] = Field(..., description="List of tags associated with the note.")
 
 
