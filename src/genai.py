@@ -36,7 +36,47 @@ def summarize_text(llm: ChatGoogleGenerativeAI, text: str) -> str:
     if not text.strip():
         raise ValueError("Text to summarize cannot be empty.")
 
-    result = llm.invoke(f"Summarize this note: {text}")
+    prompt_template = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "Summarize the user note in a concise manner.",
+            ),
+            ("human", "{text}"),
+        ]
+    )
+
+    prompt = prompt_template.invoke({"text": text})
+    result = llm.invoke(prompt)
+    return result.content
+
+
+def paraphrase_text(llm: ChatGoogleGenerativeAI, text: str) -> str:
+    """
+    Summarizes the given text using the provided language model.
+
+    Args:
+        llm (ChatGoogleGenerativeAI): The language model to use for summarization.
+        text (str): The text to summarize.
+
+    Returns:
+        str: The summarized text.
+    """
+    if not text.strip():
+        raise ValueError("Text to summarize cannot be empty.")
+
+    prompt_template = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "Paraphrase the user note making it clearer.",
+            ),
+            ("human", "{text}"),
+        ]
+    )
+
+    prompt = prompt_template.invoke({"text": text})
+    result = llm.invoke(prompt)
     return result.content
 
 
@@ -74,3 +114,4 @@ def extract_metadata(llm: ChatGoogleGenerativeAI, text: str) -> NoteMetadata:
         return result
     else:
         raise ValueError("The result is not of type NoteMetadata.")
+
