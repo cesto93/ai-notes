@@ -1,19 +1,30 @@
-from langchain_google_genai import ChatGoogleGenerativeAI
+from typing import TypedDict
 from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain.chat_models import init_chat_model
+from langgraph.graph import StateGraph, START, END
+from src.storage import save_note
 
 
 class NoteMetadata(BaseModel):
     """Data model for note metadata extracted from text."""
 
-    Argument: str = Field(
+    Title: str = Field(
         ...,
-        description="The main argument of the note. This should be a concise word categorizing the note",
+        description="The title of the note. This should be a concise word categorizing the note",
     )
     Tags: list[str] = Field(..., description="List of tags associated with the note.")
 
 
-def create_agent(model: str) -> ChatGoogleGenerativeAI:
+class State(TypedDict):
+    note: str
+    metadata: NoteMetadata
+    llm: BaseChatModel
+    action: str
+
+
+def create_agent():
     """
     Creates a Google Generative AI agent with the specified model.
 
@@ -23,10 +34,39 @@ def create_agent(model: str) -> ChatGoogleGenerativeAI:
     Returns:
         ChatGoogleGenerativeAI: An instance of the Google Generative AI agent.
     """
-    return ChatGoogleGenerativeAI(model=model)
+
+    graph_builder = StateGraph(State)
+    graph_builder.add_node("summarize_text", summarize_text)
+    graph_builder.add_node("paraphrase_text", paraphrase_text)
+    graph_builder.add_node("extract_metadata", extract_metadata)
+    graph_builder.add_node("save_note_action", save_note_action)
+
+    graph_builder.add_edge(START, "paraphrase_text")
+    graph_builder.add_edge("paraphrase_text", "extract_metadata")
+    graph_builder.add_edge("extract_metadata", "save_note_action")
+    graph_builder.add_edge("save_note_action", END)
+    graph = graph_builder.compile()
+
+    return graph
 
 
-def summarize_text(llm: ChatGoogleGenerativeAI, text: str) -> str:
+def get_initial_state(model: str, note: str, action: str) -> State:
+    """
+    Returns the initial state for the agent.
+
+    Returns:
+        State: The initial state containing default values.
+    """
+    llm = init_chat_model(f"google_genai:{model}")
+    return {
+        "note": note,
+        "metadata": NoteMetadata(Title="", Tags=[]),
+        "llm": llm,
+        "action": action,
+    }
+
+
+def summarize_text(state: State):
     """
     Summarizes the given text using the provided language model.
 
@@ -37,9 +77,7 @@ def summarize_text(llm: ChatGoogleGenerativeAI, text: str) -> str:
     Returns:
         str: The summarized text.
     """
-    if not text.strip():
-        raise ValueError("Text to summarize cannot be empty.")
-
+    text = state["note"]
     prompt_template = ChatPromptTemplate.from_messages(
         [
             (
@@ -51,11 +89,12 @@ def summarize_text(llm: ChatGoogleGenerativeAI, text: str) -> str:
     )
 
     prompt = prompt_template.invoke({"text": text})
+    llm = state["llm"]
     result = llm.invoke(prompt)
-    return result.content
+    return {"node": result.content}
 
 
-def paraphrase_text(llm: ChatGoogleGenerativeAI, text: str) -> str:
+def paraphrase_text(state: State):
     """
     Summarizes the given text using the provided language model.
 
@@ -66,9 +105,8 @@ def paraphrase_text(llm: ChatGoogleGenerativeAI, text: str) -> str:
     Returns:
         str: The summarized text.
     """
-    if not text.strip():
-        raise ValueError("Text to summarize cannot be empty.")
 
+    text = state["note"]
     prompt_template = ChatPromptTemplate.from_messages(
         [
             (
@@ -80,11 +118,12 @@ def paraphrase_text(llm: ChatGoogleGenerativeAI, text: str) -> str:
     )
 
     prompt = prompt_template.invoke({"text": text})
+    llm = state["llm"]
     result = llm.invoke(prompt)
-    return result.content
+    return {"node": result.content}
 
 
-def extract_metadata(llm: ChatGoogleGenerativeAI, text: str) -> NoteMetadata:
+def extract_metadata(state: State):
     """
     Extracts metadata from the given text using the provided language model.
 
@@ -95,9 +134,7 @@ def extract_metadata(llm: ChatGoogleGenerativeAI, text: str) -> NoteMetadata:
     Returns:
         NoteMetadata: An instance containing the extracted metadata.
     """
-    if not text.strip():
-        raise ValueError("Text to extract metadata from cannot be empty.")
-
+    text = state["note"]
     prompt_template = ChatPromptTemplate.from_messages(
         [
             (
@@ -111,10 +148,24 @@ def extract_metadata(llm: ChatGoogleGenerativeAI, text: str) -> NoteMetadata:
         ]
     )
 
+    llm = state["llm"]
     structured_llm = llm.with_structured_output(schema=NoteMetadata)
     prompt = prompt_template.invoke({"text": text})
     result = structured_llm.invoke(prompt)
     if isinstance(result, NoteMetadata):
-        return result
+        return {"metadata": result}
     else:
         raise ValueError("The result is not of type NoteMetadata.")
+
+
+def save_note_action(state: State):
+    """
+    Saves the note and its metadata to the storage.
+
+    Args:
+        state (State): The state containing the note and metadata.
+    """
+
+    note = state["note"]
+    metadata = state["metadata"]
+    save_note(note, metadata.Title, metadata.Tags)
