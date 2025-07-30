@@ -12,3 +12,5 @@ api:
 	uv run uvicorn src.api:app --reload --host 0.0.0.0 --port 8000
 venv:
 	uv venv
+format:
+	ruff format
