@@ -3,6 +3,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 import os
 from src.config import load_config
 from src.genai import create_agent, summarize_text, extract_metadata, get_initial_state
+from src.storage import save_note
 
 load_config()
 
@@ -36,6 +37,15 @@ if st.button("Paraphrase and save Note"):
             st.error(str(e))
     else:
         st.warning("Please enter a note to extract metadata from.")
+
+if st.button("Ask and Save as Note"):
+    if note.strip():
+        with st.spinner("Asking the LLM..."):
+            response = llm.invoke(note)
+            save_note(response.content, note, ["llm_response"])
+            st.success("Response saved as a note!")
+    else:
+        st.warning("Please enter a question to ask.")
 
 
 def display_notes():
