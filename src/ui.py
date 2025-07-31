@@ -1,5 +1,6 @@
 import streamlit as st
 from langchain_google_genai import ChatGoogleGenerativeAI
+import os
 from src.config import load_config
 from src.genai import create_agent, summarize_text, extract_metadata, get_initial_state
 
@@ -35,3 +36,22 @@ if st.button("Paraphrase and save Note"):
             st.error(str(e))
     else:
         st.warning("Please enter a note to extract metadata from.")
+
+
+def display_notes():
+    """
+    Displays the list of notes.
+    """
+    st.subheader("Your Notes")
+    notes_dir = "notes"
+    if os.path.exists(notes_dir) and os.path.isdir(notes_dir):
+        notes = [f for f in os.listdir(notes_dir) if f.endswith(".md")]
+        if notes:
+            for note in notes:
+                st.write(note)
+        else:
+            st.write("No notes found.")
+    else:
+        st.write("No notes found.")
+
+display_notes()
