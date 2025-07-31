@@ -40,18 +40,31 @@ if st.button("Paraphrase and save Note"):
 
 def display_notes():
     """
-    Displays the list of notes.
+    Displays the list of notes, making them clickable.
+    When a note is clicked, its content is displayed.
     """
-    st.subheader("Your Notes")
+    st.sidebar.title("Your Notes")
     notes_dir = "notes"
+    if "selected_note" not in st.session_state:
+        st.session_state.selected_note = None
+
     if os.path.exists(notes_dir) and os.path.isdir(notes_dir):
         notes = [f for f in os.listdir(notes_dir) if f.endswith(".md")]
         if notes:
-            for note in notes:
-                st.write(note)
+            for note_file in notes:
+                note_title = os.path.splitext(note_file)[0]
+                if st.sidebar.button(note_title, key=note_file):
+                    st.session_state.selected_note = note_file
         else:
-            st.write("No notes found.")
+            st.sidebar.write("No notes found.")
     else:
-        st.write("No notes found.")
+        st.sidebar.write("No notes found.")
+
+    if st.session_state.selected_note:
+        note_path = os.path.join(notes_dir, st.session_state.selected_note)
+        with open(note_path, "r", encoding="utf-8") as f:
+            note_content = f.read()
+        st.subheader(f"Content of {st.session_state.selected_note}")
+        st.markdown(note_content)
 
 display_notes()
