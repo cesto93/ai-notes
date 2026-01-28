@@ -3,7 +3,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 import os
 from src.config import load_config
 from src.genai import create_agent, get_initial_state
-from src.storage import save_note
+from src.storage import save_note, update_note, get_note_metadata
 
 load_config()
 
@@ -13,6 +13,9 @@ st.title("AI Notes")
 
 if "show_input" not in st.session_state:
     st.session_state.show_input = True
+
+if "editing_note" not in st.session_state:
+    st.session_state.editing_note = False
 
 if st.session_state.show_input:
     # Note input
@@ -51,6 +54,22 @@ if st.session_state.show_input:
         else:
             st.warning("Please enter a question to ask.")
 
+    st.markdown("---")
+    st.subheader("Manual Note Entry")
+    manual_title = st.text_input("Note Title")
+    manual_directory = st.text_input("Directory (optional, e.g., 'work', 'personal')")
+    manual_tags = st.text_input("Tags (comma separated, optional)")
+
+    if st.button("Save Note Manually"):
+        if note.strip() and manual_title.strip():
+            tags_list = [t.strip() for t in manual_tags.split(",")] if manual_tags.strip() else []
+            save_note(note, manual_title, tags_list, manual_directory.strip())
+            st.success(f"Note '{manual_title}' saved successfully!")
+        elif not note.strip():
+            st.warning("Please enter note content above.")
+        else:
+            st.warning("Please provide a title for your manual note.")
+
 
 def display_notes():
     """
@@ -61,6 +80,7 @@ def display_notes():
     if st.sidebar.button("New Note"):
         st.session_state.show_input = True
         st.session_state.selected_note = None
+        st.session_state.editing_note = False
 
     notes_dir = "notes"
     if "selected_note" not in st.session_state:
@@ -74,6 +94,7 @@ def display_notes():
             if st.sidebar.button(note_title, key=note_file):
                 st.session_state.selected_note = note_file
                 st.session_state.show_input = False
+                st.session_state.editing_note = False
         
         # List subdirectories
         subdirs = [d for d in os.listdir(notes_dir) if os.path.isdir(os.path.join(notes_dir, d)) and not d.startswith(".")]
@@ -89,6 +110,7 @@ def display_notes():
                         if st.button(note_title, key=rel_path):
                             st.session_state.selected_note = rel_path
                             st.session_state.show_input = False
+                            st.session_state.editing_note = False
                 else:
                     st.write("No notes.")
     else:
@@ -98,8 +120,61 @@ def display_notes():
         note_path = os.path.join(notes_dir, st.session_state.selected_note)
         with open(note_path, "r", encoding="utf-8") as f:
             note_content = f.read()
-        st.subheader(f"Note: {st.session_state.selected_note}")
-        st.markdown(note_content)
+        
+        # Parse path to get directory and filename
+        path_parts = st.session_state.selected_note.split(os.sep)
+        if len(path_parts) > 1:
+            directory = path_parts[0]
+            filename = path_parts[1]
+        else:
+            directory = ""
+            filename = path_parts[0]
+        filename_no_ext = os.path.splitext(filename)[0]
+        
+        metadata = get_note_metadata(filename_no_ext, directory)
+        original_title = metadata["argument"] if metadata else filename_no_ext
+        original_tags = metadata["tags"] if metadata else []
+        original_directory = metadata["directory"] if metadata else directory
+
+        if not st.session_state.editing_note:
+            st.subheader(f"Note: {original_title}")
+            if st.button("Edit Note"):
+                st.session_state.editing_note = True
+                st.rerun()
+            
+            st.markdown(note_content)
+            if original_tags:
+                st.write(f"**Tags:** {', '.join(original_tags)}")
+            if original_directory:
+                st.write(f"**Directory:** {original_directory}")
+        else:
+            st.subheader(f"Editing: {original_title}")
+            new_content = st.text_area("Content", value=note_content, height=300)
+            new_title = st.text_input("Title", value=original_title)
+            new_directory = st.text_input("Directory", value=original_directory)
+            new_tags_str = st.text_input("Tags (comma separated)", value=", ".join(original_tags))
+            
+            col1, col2 = st.columns(2)
+            if col1.button("Save Changes"):
+                new_tags = [t.strip() for t in new_tags_str.split(",")] if new_tags_str.strip() else []
+                update_note(
+                    old_title=original_title,
+                    old_directory=original_directory,
+                    new_content=new_content,
+                    new_title=new_title,
+                    new_tags=new_tags,
+                    new_directory=new_directory
+                )
+                st.success("Note updated!")
+                st.session_state.editing_note = False
+                # Update selected_note path if title or directory changed
+                new_filename = f"{new_title.replace(' ', '_')}.md"
+                st.session_state.selected_note = os.path.join(new_directory, new_filename) if new_directory else new_filename
+                st.rerun()
+            
+            if col2.button("Cancel"):
+                st.session_state.editing_note = False
+                st.rerun()
 
 
 display_notes()
