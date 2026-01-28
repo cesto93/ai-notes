@@ -45,7 +45,7 @@ if st.session_state.show_input:
     if st.button("Ask and Save as Note"):
         if note.strip():
             with st.spinner("Asking the LLM..."):
-                response = llm.invoke(note)
+                response = llm.ainvoke(note)
                 save_note(response.content, note, ["llm_response"])
                 st.success("Response saved as a note!")
         else:
