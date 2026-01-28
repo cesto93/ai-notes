@@ -1,4 +1,3 @@
-from typing import List
 import os
 from tinydb import TinyDB, Query
 
@@ -15,14 +14,13 @@ def create_directory(directory: str) -> None:
     os.makedirs(target_dir, exist_ok=True)
 
 
-def save_note(note: str, title: str, tags: List[str], directory: str = "") -> None:
+def save_note(note: str, title: str, directory: str = "") -> None:
     """
-    Saves a note with the given content, argument, and tags.
+    Saves a note with the given content, argument, and directory.
 
     Args:
         note (str): The content of the note.
         title (str): The note title.
-        tags (List[str]): A list of tags associated with the note.
         directory (str): The directory where the note should be saved.
     """
     # Ensure notes directory exists
@@ -39,8 +37,8 @@ def save_note(note: str, title: str, tags: List[str], directory: str = "") -> No
     # Save metadata to TinyDB
     db_path = os.path.join(os.path.dirname(__file__), "..", DB_FILE)
     db = TinyDB(db_path)
-    db.insert({"argument": title, "tags": tags, "directory": directory})
-def update_note(old_title: str, old_directory: str, new_content: str, new_title: str, new_tags: List[str], new_directory: str) -> None:
+    db.insert({"argument": title, "directory": directory})
+def update_note(old_title: str, old_directory: str, new_content: str, new_title: str, new_directory: str) -> None:
     """
     Updates an existing note's content and metadata.
     """
@@ -52,7 +50,7 @@ def update_note(old_title: str, old_directory: str, new_content: str, new_title:
     # Find the old note in DB
     # The DB uses 'argument' for title
     db.update(
-        {"argument": new_title, "tags": new_tags, "directory": new_directory},
+        {"argument": new_title, "directory": new_directory},
         (Note.argument == old_title) & (Note.directory == old_directory)
     )
 

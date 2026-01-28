@@ -30,7 +30,7 @@ if st.session_state.show_input:
         if note.strip():
             with st.spinner("Asking the LLM..."):
                 response = llm.ainvoke(note)
-                save_note(response.content, note, ["llm_response"], "AI_Responses")
+                save_note(response.content, note, "AI_Responses")
                 st.success("Response saved as a note!")
         else:
             st.warning("Please enter a question to ask.")
@@ -39,12 +39,10 @@ if st.session_state.show_input:
     st.subheader("Manual Note Entry")
     manual_title = st.text_input("Note Title")
     manual_directory = st.text_input("Directory (optional, e.g., 'work', 'personal')", value=st.session_state.get("prefill_directory", ""))
-    manual_tags = st.text_input("Tags (comma separated, optional)")
 
     if st.button("Save Note Manually"):
         if note.strip() and manual_title.strip():
-            tags_list = [t.strip() for t in manual_tags.split(",")] if manual_tags.strip() else []
-            save_note(note, manual_title, tags_list, manual_directory.strip())
+            save_note(note, manual_title, manual_directory.strip())
             st.success(f"Note '{manual_title}' saved successfully!")
         elif not note.strip():
             st.warning("Please enter note content above.")
@@ -133,7 +131,6 @@ def display_notes():
         
         metadata = get_note_metadata(filename_no_ext, directory)
         original_title = metadata["argument"] if metadata else filename_no_ext
-        original_tags = metadata["tags"] if metadata else []
         original_directory = metadata["directory"] if metadata else directory
 
         if not st.session_state.editing_note:
@@ -158,8 +155,6 @@ def display_notes():
                     st.info(result["note"])
             
             st.markdown(note_content)
-            if original_tags:
-                st.write(f"**Tags:** {', '.join(original_tags)}")
             if original_directory:
                 st.write(f"**Directory:** {original_directory}")
         else:
@@ -167,17 +162,14 @@ def display_notes():
             new_content = st.text_area("Content", value=note_content, height=300)
             new_title = st.text_input("Title", value=original_title)
             new_directory = st.text_input("Directory", value=original_directory)
-            new_tags_str = st.text_input("Tags (comma separated)", value=", ".join(original_tags))
             
             col1, col2 = st.columns(2)
             if col1.button("Save Changes"):
-                new_tags = [t.strip() for t in new_tags_str.split(",")] if new_tags_str.strip() else []
                 update_note(
                     old_title=original_title,
                     old_directory=original_directory,
                     new_content=new_content,
                     new_title=new_title,
-                    new_tags=new_tags,
                     new_directory=new_directory
                 )
                 st.success("Note updated!")

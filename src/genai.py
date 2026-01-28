@@ -18,7 +18,6 @@ class NoteMetadata(BaseModel):
         ...,
         description="The directory where the note should be stored. This should be a single word representing the category of the note (e.g. 'work', 'personal', 'ideas', 'learning').",
     )
-    Tags: list[str] = Field(..., description="List of tags associated with the note.")
 
 
 class State(TypedDict):
@@ -90,7 +89,7 @@ def get_initial_state(model: str, note: str, action: str) -> State:
     llm = init_chat_model(f"google_genai:{model}")
     return {
         "note": note,
-        "metadata": NoteMetadata(Title="", Tags=[], Directory=""),
+        "metadata": NoteMetadata(Title="", Directory=""),
         "llm": llm,
         "action": action,
     }
@@ -198,4 +197,4 @@ def save_note_action(state: State):
 
     note = state["note"]
     metadata = state["metadata"]
-    save_note(note, metadata.Title, metadata.Tags, metadata.Directory)
+    save_note(note, metadata.Title, metadata.Directory)
