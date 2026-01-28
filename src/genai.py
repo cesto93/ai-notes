@@ -14,6 +14,10 @@ class NoteMetadata(BaseModel):
         ...,
         description="The title of the note. This should be a concise word categorizing the note",
     )
+    Directory: str = Field(
+        ...,
+        description="The directory where the note should be stored. This should be a single word representing the category of the note (e.g. 'work', 'personal', 'ideas', 'learning').",
+    )
     Tags: list[str] = Field(..., description="List of tags associated with the note.")
 
 
@@ -60,7 +64,7 @@ def get_initial_state(model: str, note: str, action: str) -> State:
     llm = init_chat_model(f"google_genai:{model}")
     return {
         "note": note,
-        "metadata": NoteMetadata(Title="", Tags=[]),
+        "metadata": NoteMetadata(Title="", Tags=[], Directory=""),
         "llm": llm,
         "action": action,
     }
@@ -91,12 +95,12 @@ def summarize_text(state: State):
     prompt = prompt_template.invoke({"text": text})
     llm = state["llm"]
     result = llm.invoke(prompt)
-    return {"node": result.content}
+    return {"note": result.content}
 
 
 def paraphrase_text(state: State):
     """
-    Summarizes the given text using the provided language model.
+    Paraphrases the given text using the provided language model.
 
     Args:
         llm (ChatGoogleGenerativeAI): The language model to use for summarization.
@@ -120,7 +124,7 @@ def paraphrase_text(state: State):
     prompt = prompt_template.invoke({"text": text})
     llm = state["llm"]
     result = llm.invoke(prompt)
-    return {"node": result.content}
+    return {"note": result.content}
 
 
 def extract_metadata(state: State):
@@ -168,4 +172,4 @@ def save_note_action(state: State):
 
     note = state["note"]
     metadata = state["metadata"]
-    save_note(note, metadata.Title, metadata.Tags)
+    save_note(note, metadata.Title, metadata.Tags, metadata.Directory)

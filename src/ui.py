@@ -46,7 +46,7 @@ if st.session_state.show_input:
         if note.strip():
             with st.spinner("Asking the LLM..."):
                 response = llm.ainvoke(note)
-                save_note(response.content, note, ["llm_response"])
+                save_note(response.content, note, ["llm_response"], "AI_Responses")
                 st.success("Response saved as a note!")
         else:
             st.warning("Please enter a question to ask.")
@@ -67,15 +67,30 @@ def display_notes():
         st.session_state.selected_note = None
 
     if os.path.exists(notes_dir) and os.path.isdir(notes_dir):
-        notes = [f for f in os.listdir(notes_dir) if f.endswith(".md")]
-        if notes:
-            for note_file in notes:
-                note_title = os.path.splitext(note_file)[0]
-                if st.sidebar.button(note_title, key=note_file):
-                    st.session_state.selected_note = note_file
-                    st.session_state.show_input = False
-        else:
-            st.sidebar.write("No notes found.")
+        # List top-level files
+        top_level_files = [f for f in os.listdir(notes_dir) if os.path.isfile(os.path.join(notes_dir, f)) and f.endswith(".md")]
+        for note_file in top_level_files:
+            note_title = os.path.splitext(note_file)[0]
+            if st.sidebar.button(note_title, key=note_file):
+                st.session_state.selected_note = note_file
+                st.session_state.show_input = False
+        
+        # List subdirectories
+        subdirs = [d for d in os.listdir(notes_dir) if os.path.isdir(os.path.join(notes_dir, d)) and not d.startswith(".")]
+        for subdir in sorted(subdirs):
+            with st.sidebar.expander(subdir):
+                subdir_path = os.path.join(notes_dir, subdir)
+                note_files = [f for f in os.listdir(subdir_path) if f.endswith(".md")]
+                if note_files:
+                    for note_file in sorted(note_files):
+                        note_title = os.path.splitext(note_file)[0]
+                        # Use relative path as key and for selection
+                        rel_path = os.path.join(subdir, note_file)
+                        if st.button(note_title, key=rel_path):
+                            st.session_state.selected_note = rel_path
+                            st.session_state.show_input = False
+                else:
+                    st.write("No notes.")
     else:
         st.sidebar.write("No notes found.")
 
@@ -83,7 +98,7 @@ def display_notes():
         note_path = os.path.join(notes_dir, st.session_state.selected_note)
         with open(note_path, "r", encoding="utf-8") as f:
             note_content = f.read()
-        st.subheader(f"Content of {st.session_state.selected_note}")
+        st.subheader(f"Note: {st.session_state.selected_note}")
         st.markdown(note_content)
 
 
