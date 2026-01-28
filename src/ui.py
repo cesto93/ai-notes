@@ -3,7 +3,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 import os
 from src.config import load_config
 from src.genai import create_agent, get_initial_state
-from src.storage import save_note, update_note, get_note_metadata
+from src.storage import save_note, update_note, get_note_metadata, create_directory
 
 load_config()
 
@@ -57,7 +57,7 @@ if st.session_state.show_input:
     st.markdown("---")
     st.subheader("Manual Note Entry")
     manual_title = st.text_input("Note Title")
-    manual_directory = st.text_input("Directory (optional, e.g., 'work', 'personal')")
+    manual_directory = st.text_input("Directory (optional, e.g., 'work', 'personal')", value=st.session_state.get("prefill_directory", ""))
     manual_tags = st.text_input("Tags (comma separated, optional)")
 
     if st.button("Save Note Manually"):
@@ -81,10 +81,22 @@ def display_notes():
         st.session_state.show_input = True
         st.session_state.selected_note = None
         st.session_state.editing_note = False
+        st.session_state.prefill_directory = ""
 
     notes_dir = "notes"
     if "selected_note" not in st.session_state:
         st.session_state.selected_note = None
+
+    # Directory creation UI
+    with st.sidebar.expander("📁 Create New Directory"):
+        new_dir_name = st.text_input("Directory Name", key="new_dir_input")
+        if st.button("Create", key="create_dir_btn"):
+            if new_dir_name:
+                create_directory(new_dir_name)
+                st.success(f"Created '{new_dir_name}'")
+                st.rerun()
+            else:
+                st.warning("Enter a name.")
 
     if os.path.exists(notes_dir) and os.path.isdir(notes_dir):
         # List top-level files
@@ -100,6 +112,13 @@ def display_notes():
         subdirs = [d for d in os.listdir(notes_dir) if os.path.isdir(os.path.join(notes_dir, d)) and not d.startswith(".")]
         for subdir in sorted(subdirs):
             with st.sidebar.expander(subdir):
+                if st.button(f"➕ New Note in {subdir}", key=f"new_note_btn_{subdir}"):
+                    st.session_state.show_input = True
+                    st.session_state.selected_note = None
+                    st.session_state.editing_note = False
+                    st.session_state.prefill_directory = subdir
+                    st.rerun()
+                
                 subdir_path = os.path.join(notes_dir, subdir)
                 note_files = [f for f in os.listdir(subdir_path) if f.endswith(".md")]
                 if note_files:

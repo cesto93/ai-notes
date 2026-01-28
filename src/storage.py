@@ -6,6 +6,15 @@ DB_FILE = "notes_db.json"
 NOTES_DIR = "notes"
 
 
+def create_directory(directory: str) -> None:
+    """
+    Creates a new directory in the notes folder.
+    """
+    notes_base_dir = os.path.join(os.path.dirname(__file__), "..", NOTES_DIR)
+    target_dir = os.path.join(notes_base_dir, directory)
+    os.makedirs(target_dir, exist_ok=True)
+
+
 def save_note(note: str, title: str, tags: List[str], directory: str = "") -> None:
     """
     Saves a note with the given content, argument, and tags.
