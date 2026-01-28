@@ -112,7 +112,7 @@ def display_notes():
         subdirs = [d for d in os.listdir(notes_dir) if os.path.isdir(os.path.join(notes_dir, d)) and not d.startswith(".")]
         for subdir in sorted(subdirs):
             with st.sidebar.expander(subdir):
-                if st.button(f"➕ New Note in {subdir}", key=f"new_note_btn_{subdir}"):
+                if st.button(f"➕ New Note", key=f"new_note_btn_{subdir}"):
                     st.session_state.show_input = True
                     st.session_state.selected_note = None
                     st.session_state.editing_note = False
