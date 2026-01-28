@@ -21,29 +21,10 @@ if st.session_state.show_input:
     # Note input
     note = st.text_area("Write your note here:", height=150)
     agent = create_agent()
-    initial_state = get_initial_state(model="gemini-2.5-flash", note=note, action="")
+    initial_state = get_initial_state(model="gemini-2.0-flash", note=note, action="")
 
-    if st.button("Summarize and save Note"):
-        if note.strip():
-            initial_state["action"] = "summarize"
-            result = agent.invoke(initial_state)
-            st.subheader("Summary")
-            st.write(result["note"])
-        else:
-            st.warning("Please enter a note to summarize.")
-    if st.button("Paraphrase and save Note"):
-        if note.strip():
-            try:
-                initial_state["action"] = "paraphrase"
-                result = agent.invoke(initial_state)
-                st.success("Note saved successfully!")
-                st.subheader("Extracted Metadata")
-                st.write(f"Tags: {', '.join(result['metadata'].Tags)}")
-                st.write(f"Title: {result['metadata'].Title}")
-            except ValueError as e:
-                st.error(str(e))
-        else:
-            st.warning("Please enter a note to extract metadata from.")
+
+
 
     if st.button("Ask and Save as Note"):
         if note.strip():
@@ -157,9 +138,24 @@ def display_notes():
 
         if not st.session_state.editing_note:
             st.subheader(f"Note: {original_title}")
-            if st.button("Edit Note"):
+            col1, col2, col3 = st.columns(3)
+            if col1.button("Edit Note"):
                 st.session_state.editing_note = True
                 st.rerun()
+            
+            if col2.button("Summarize"):
+                agent = create_agent()
+                initial_state = get_initial_state(model="gemini-2.0-flash", note=note_content, action="summarize")
+                with st.spinner("Summarizing..."):
+                    result = agent.invoke(initial_state)
+                    st.info(result["note"])
+            
+            if col3.button("Paraphrase"):
+                agent = create_agent()
+                initial_state = get_initial_state(model="gemini-2.0-flash", note=note_content, action="paraphrase_view")
+                with st.spinner("Paraphrasing..."):
+                    result = agent.invoke(initial_state)
+                    st.info(result["note"])
             
             st.markdown(note_content)
             if original_tags:

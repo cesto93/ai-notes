@@ -45,9 +45,35 @@ def create_agent():
     graph_builder.add_node("extract_metadata", extract_metadata)
     graph_builder.add_node("save_note_action", save_note_action)
 
-    graph_builder.add_edge(START, "paraphrase_text")
-    graph_builder.add_edge("paraphrase_text", "extract_metadata")
+    def route_action(state: State):
+        return state.get("action", "paraphrase")
+
+    graph_builder.add_conditional_edges(
+        START,
+        route_action,
+        {
+            "summarize": "summarize_text",
+            "paraphrase": "paraphrase_text",
+            "paraphrase_view": "paraphrase_text",
+        }
+    )
+
+    def route_after_paraphrase(state: State):
+        if state.get("action") == "paraphrase_view":
+            return "end"
+        return "extract_metadata"
+
+    graph_builder.add_edge("summarize_text", END)
+    graph_builder.add_conditional_edges(
+        "paraphrase_text",
+        route_after_paraphrase,
+        {
+            "end": END,
+            "extract_metadata": "extract_metadata"
+        }
+    )
     graph_builder.add_edge("extract_metadata", "save_note_action")
+
     graph_builder.add_edge("save_note_action", END)
     graph = graph_builder.compile()
 
