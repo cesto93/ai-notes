@@ -20,14 +20,10 @@ if st.session_state.show_input:
     # Note input
     note = st.text_area("Write your note here:", height=150)
     manual_title = st.text_input("Note Title")
-    manual_directory = st.text_input(
-        "Directory (optional, e.g., 'work', 'personal')",
-        value=st.session_state.get("prefill_directory", ""),
-    )
 
     if st.button("Save Note"):
         if note.strip() and manual_title.strip():
-            save_note(note, manual_title, manual_directory.strip())
+            save_note(note, manual_title)
             st.success(f"Note '{manual_title}' saved successfully!")
         elif not note.strip():
             st.warning("Please enter note content above.")
@@ -45,7 +41,6 @@ def display_notes():
         st.session_state.show_input = True
         st.session_state.selected_note = None
         st.session_state.editing_note = False
-        st.session_state.prefill_directory = ""
 
     notes_dir = "notes"
     if "selected_note" not in st.session_state:
@@ -127,7 +122,7 @@ def display_notes():
         original_directory = metadata["directory"] if metadata else directory
 
         if not st.session_state.editing_note:
-            st.subheader(f"Note: {original_title}")
+            st.subheader(f"{original_title}")
             col1, col2, col3 = st.columns(3)
             if col1.button("Edit Note"):
                 st.session_state.editing_note = True
