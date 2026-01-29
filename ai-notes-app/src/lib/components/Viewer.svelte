@@ -1,11 +1,14 @@
 <script lang="ts">
     import { Edit, Sparkles, Wand2 } from 'lucide-svelte';
     import { summarize, paraphrase } from '$lib/api';
+    import { marked } from 'marked';
 
     let { note, onEdit } = $props();
     
     let aiResult = $state('');
     let loading = $state(false);
+
+    let htmlContent = $derived(marked.parse(note.content || ''));
 
     async function handleSummarize() {
         loading = true;
@@ -62,7 +65,9 @@
                     <span>AI Insight</span>
                     <button class="close-ai" onclick={() => aiResult = ''}>&times;</button>
                 </div>
-                <p>{aiResult}</p>
+                <div class="ai-content">
+                    {@html marked.parse(aiResult)}
+                </div>
             </div>
         {/if}
 
@@ -74,7 +79,7 @@
         {/if}
 
         <article class="note-body">
-            {note.content}
+            {@html htmlContent}
         </article>
     </div>
 </div>
@@ -160,8 +165,83 @@
 
     .note-body {
         font-size: 1.1rem;
-        white-space: pre-wrap;
         color: var(--text-main);
+        line-height: 1.6;
+    }
+
+    .note-body :global(h1), 
+    .note-body :global(h2), 
+    .note-body :global(h3) {
+        margin-top: 1.5em;
+        margin-bottom: 0.5em;
+        color: var(--text-main);
+    }
+
+    .note-body :global(p) {
+        margin-bottom: 1em;
+    }
+
+    .note-body :global(ul), 
+    .note-body :global(ol) {
+        margin-bottom: 1em;
+        padding-left: 1.5em;
+    }
+
+    .note-body :global(li) {
+        margin-bottom: 0.5em;
+    }
+
+    .note-body :global(code) {
+        background: var(--glass);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: 'Fira Code', monospace;
+        font-size: 0.9em;
+    }
+
+    .note-body :global(pre) {
+        background: #1e293b;
+        padding: 16px;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin-bottom: 1em;
+    }
+
+    .note-body :global(pre code) {
+        background: transparent;
+        padding: 0;
+        color: #e2e8f0;
+    }
+
+    .note-body :global(blockquote) {
+        border-left: 4px solid var(--accent);
+        padding-left: 16px;
+        font-style: italic;
+        color: var(--text-dim);
+        margin: 1.5em 0;
+    }
+
+    .note-body :global(img) {
+        max-width: 100%;
+        border-radius: 8px;
+        margin: 1em 0;
+    }
+
+    .note-body :global(table) {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1em;
+    }
+
+    .note-body :global(th), 
+    .note-body :global(td) {
+        border: 1px solid var(--border);
+        padding: 8px 12px;
+        text-align: left;
+    }
+
+    .note-body :global(th) {
+        background: var(--glass);
     }
 
     .ai-box {
@@ -180,7 +260,20 @@
         font-size: 0.8rem;
         text-transform: uppercase;
         color: var(--accent);
-        margin-bottom: 8px;
+        margin-bottom: 12px;
+    }
+
+    .ai-content {
+        font-size: 0.95rem;
+        color: var(--text-main);
+    }
+
+    .ai-content :global(p) {
+        margin-bottom: 0.5em;
+    }
+
+    .ai-content :global(p:last-child) {
+        margin-bottom: 0;
     }
 
     .close-ai {
