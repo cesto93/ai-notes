@@ -3,12 +3,14 @@
     import Sidebar from '$lib/components/Sidebar.svelte';
     import Editor from '$lib/components/Editor.svelte';
     import Viewer from '$lib/components/Viewer.svelte';
+    import Settings from '$lib/components/Settings.svelte';
     import { fetchNotes, fetchNote } from '$lib/api';
 
     let notes = $state({ files: [], directories: {} });
     let selectedNote = $state(null);
     let viewMode = $state('empty'); // 'empty', 'viewer', 'editor', 'new'
     let currentDir = $state(''); // For prefilling new note directory
+    let showSettings = $state(false);
 
     async function loadNotes() {
         notes = await fetchNotes();
@@ -47,7 +49,12 @@
         onSelectNote={handleSelectNote} 
         onNewNote={handleNewNote} 
         onRefresh={loadNotes} 
+        onToggleSettings={() => showSettings = !showSettings}
     />
+    
+    {#if showSettings}
+        <Settings onClose={() => showSettings = false} />
+    {/if}
     
     <main class="content-area">
         {#if viewMode === 'empty'}

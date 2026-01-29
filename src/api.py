@@ -6,10 +6,13 @@ from typing import List, Optional
 
 from src.config import load_config
 from src.genai import get_model, summarize_text, paraphrase_text
-from src.storage import save_note, update_note, get_note_metadata, create_directory, delete_note, delete_directory
+from src.storage import save_note, update_note, get_note_metadata, create_directory, delete_note, delete_directory, get_settings, save_settings
 
 load_config()
-llm = get_model(model="gemini-2.0-flash")
+
+def get_current_llm():
+    settings = get_settings()
+    return get_model(provider=settings["provider"], model=settings["model"])
 
 app = FastAPI()
 
@@ -41,6 +44,10 @@ class SummarizeRequest(BaseModel):
 
 class DirectoryRequest(BaseModel):
     name: str
+
+class SettingsRequest(BaseModel):
+    provider: str
+    model: str
 
 @app.get("/notes")
 def list_notes():
@@ -124,12 +131,23 @@ def delete_dir_endpoint(name: str):
     delete_directory(name)
     return {"message": "Directory deleted"}
 
+@app.get("/settings")
+def get_settings_endpoint():
+    return get_settings()
+
+@app.post("/settings")
+def save_settings_endpoint(req: SettingsRequest):
+    save_settings(req.provider, req.model)
+    return {"message": "Settings saved"}
+
 @app.post("/summarize")
 def summarize_endpoint(req: SummarizeRequest):
+    llm = get_current_llm()
     result = summarize_text(llm, req.text)
     return {"result": result}
 
 @app.post("/paraphrase")
 def paraphrase_endpoint(req: SummarizeRequest):
+    llm = get_current_llm()
     result = paraphrase_text(llm, req.text)
     return {"result": result}

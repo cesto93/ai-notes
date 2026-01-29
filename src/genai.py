@@ -17,14 +17,18 @@ class NoteMetadata(BaseModel):
     )
 
 
-def get_model(model: str) -> BaseChatModel:
+def get_model(provider: str, model: str) -> BaseChatModel:
     """
-    Returns the initial state for the agent.
-
-    Returns:
-        State: The initial state containing default values.
+    Returns the chat model based on provider and model name.
     """
-    return init_chat_model(f"google_genai:{model}")
+    if provider == "google":
+        return init_chat_model(model, model_provider="google_genai")
+    elif provider == "ollama":
+        return init_chat_model(model, model_provider="ollama")
+    elif provider == "groq":
+        return init_chat_model(model, model_provider="groq")
+    else:
+        return init_chat_model(model, model_provider="google_genai")
 
 
 def summarize_text(llm: BaseChatModel, text: str) -> str:

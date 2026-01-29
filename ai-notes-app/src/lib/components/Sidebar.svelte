@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { FileText, Folder, Plus, ChevronRight, ChevronDown, List as ListIcon, Trash2 } from 'lucide-svelte';
+    import { FileText, Folder, Plus, ChevronRight, ChevronDown, List as ListIcon, Trash2, Settings } from 'lucide-svelte';
     import { createDirectory, deleteNote, deleteDirectory } from '$lib/api';
 
-    let { notes, onSelectNote, onNewNote, onRefresh } = $props();
+    let { notes, onSelectNote, onNewNote, onRefresh, onToggleSettings } = $props();
     
     let newDirName = $state('');
     let showDirInput = $state(false);
@@ -44,9 +44,14 @@
 <aside class="sidebar glass-morphism">
     <div class="sidebar-header">
         <h2>AI Notes</h2>
-        <button class="icon-btn" onclick={onNewNote} title="New Note">
-            <Plus size={20} />
-        </button>
+        <div class="header-actions">
+            <button class="icon-btn settings-btn" onclick={onToggleSettings} title="Settings">
+                <Settings size={18} />
+            </button>
+            <button class="icon-btn" onclick={onNewNote} title="New Note">
+                <Plus size={20} />
+            </button>
+        </div>
     </div>
 
     <div class="sidebar-content">
@@ -140,6 +145,23 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .settings-btn {
+        background: var(--bg-secondary) !important;
+        color: var(--text-dim) !important;
+        box-shadow: none !important;
+    }
+
+    .settings-btn:hover {
+        background: var(--glass) !important;
+        color: white !important;
     }
 
     .icon-btn {

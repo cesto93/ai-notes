@@ -132,3 +132,23 @@ def delete_directory(directory: str) -> None:
     db = TinyDB(db_path)
     Note = Query()
     db.remove(Note.directory == directory)
+
+
+def get_settings():
+    """Retrieves settings from TinyDB."""
+    db_path = os.path.join(os.path.dirname(__file__), "..", DB_FILE)
+    db = TinyDB(db_path)
+    Settings = Query()
+    settings = db.table('settings').all()
+    if settings:
+        return settings[0]
+    return {"provider": "google", "model": "gemini-2.0-flash"}
+
+
+def save_settings(provider: str, model: str):
+    """Saves settings to TinyDB."""
+    db_path = os.path.join(os.path.dirname(__file__), "..", DB_FILE)
+    db = TinyDB(db_path)
+    table = db.table('settings')
+    table.truncate()
+    table.insert({"provider": provider, "model": model})
