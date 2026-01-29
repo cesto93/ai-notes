@@ -33,7 +33,12 @@
 
 <div class="editor fade-in">
     <header class="editor-header">
-        <h1>{isNew ? 'New Note' : 'Edit Note'}</h1>
+        <div class="title-section">
+            <h1>{isNew ? 'New Note' : 'Edit Note'}</h1>
+            {#if directory}
+                <span class="directory-tag">{directory}</span>
+            {/if}
+        </div>
         <div class="actions">
             <button class="cancel-btn" onclick={onCancel}>
                 <X size={20} class="icon-gap" />
@@ -52,11 +57,6 @@
             <input id="title" bind:value={title} placeholder="Enter title..." />
         </div>
         
-        <div class="input-group">
-            <label for="directory">Directory (Optional)</label>
-            <input id="directory" bind:value={directory} placeholder="e.g. Work, Ideas..." />
-        </div>
-
         <div class="input-group full-height">
             <label for="content">Content</label>
             <textarea id="content" bind:value={content} placeholder="Write your thoughts..."></textarea>
@@ -78,8 +78,24 @@
     .editor-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         margin-bottom: 30px;
+    }
+
+    .title-section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .directory-tag {
+        align-self: flex-start;
+        background: var(--glass);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        color: var(--accent);
+        border: 1px solid var(--border);
     }
 
     .actions {

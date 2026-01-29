@@ -60,12 +60,14 @@
         {:else if viewMode === 'viewer'}
             <Viewer note={selectedNote} onEdit={handleEditNote} />
         {:else if viewMode === 'editor' || viewMode === 'new'}
-            <Editor 
-                note={selectedNote} 
-                isNew={viewMode === 'new'} 
-                onSave={handleSaveSuccess} 
-                onCancel={() => viewMode = viewMode === 'new' ? 'empty' : 'viewer'}
-            />
+            {#key selectedNote}
+                <Editor 
+                    note={selectedNote} 
+                    isNew={viewMode === 'new'} 
+                    onSave={handleSaveSuccess} 
+                    onCancel={() => viewMode = viewMode === 'new' ? 'empty' : 'viewer'}
+                />
+            {/key}
         {/if}
     </main>
 </div>
