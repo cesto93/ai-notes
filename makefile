@@ -1,16 +1,27 @@
 run:
-	uv run python -m streamlit run src/ui.py
-coverage:
-	uv run pytest --cov=src --cov-report=html tests/
-docker-build:
-	docker build -t streamlit_app .
-start:
-	docker compose up
-stop:
-	docker compose down
+	@echo "Starting backend and frontend..."
+	(trap 'kill 0' SIGINT; make api & make frontend)
+
 api:
 	uv run uvicorn src.api:app --reload --host 0.0.0.0 --port 8000
+
+frontend:
+	cd ai-notes-app && bun run dev
+
+coverage:
+	uv run pytest --cov=src --cov-report=html tests/
+
+docker-build:
+	docker build -t streamlit_app .
+
+start:
+	docker compose up
+
+stop:
+	docker compose down
+
 venv:
 	uv venv
+
 format:
 	ruff format
