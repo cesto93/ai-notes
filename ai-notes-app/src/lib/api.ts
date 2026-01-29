@@ -34,6 +34,15 @@ export async function updateNote(data: {
     return res.json();
 }
 
+export async function moveNote(title: string, old_directory: string, new_directory: string) {
+    const res = await fetch(`${API_BASE}/note/move`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, old_directory, new_directory })
+    });
+    return res.json();
+}
+
 export async function createDirectory(name: string) {
     const res = await fetch(`${API_BASE}/directory`, {
         method: 'POST',

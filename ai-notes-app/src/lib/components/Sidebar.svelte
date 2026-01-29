@@ -1,6 +1,6 @@
 <script lang="ts">
     import { FileText, Folder, Plus, ChevronRight, ChevronDown, List as ListIcon, Trash2, Settings } from 'lucide-svelte';
-    import { createDirectory, deleteNote, deleteDirectory } from '$lib/api';
+    import { createDirectory, deleteNote, deleteDirectory, moveNote } from '$lib/api';
 
     let { notes, onSelectNote, onNewNote, onRefresh, onToggleSettings } = $props();
     
@@ -39,6 +39,51 @@
             onRefresh();
         }
     }
+
+    let draggedNote = $state<{ title: string, directory: string } | null>(null);
+    let dragOverDir = $state<string | null>(null);
+
+    function handleDragStart(e: DragEvent, title: string, directory: string) {
+        draggedNote = { title, directory };
+        if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', JSON.stringify({ title, directory }));
+        }
+    }
+
+    async function handleDrop(e: DragEvent, targetDirectory: string) {
+        e.preventDefault();
+        dragOverDir = null;
+        if (!draggedNote) {
+            // Fallback for cross-window or other drag sources
+            const data = e.dataTransfer?.getData('text/plain');
+            if (data) {
+                try {
+                    draggedNote = JSON.parse(data);
+                } catch (err) {
+                    return;
+                }
+            }
+        }
+
+        if (draggedNote && draggedNote.directory !== targetDirectory) {
+            await moveNote(draggedNote.title, draggedNote.directory, targetDirectory);
+            onRefresh();
+        }
+        draggedNote = null;
+    }
+
+    function handleDragOver(e: DragEvent, dir: string | null = null) {
+        e.preventDefault();
+        dragOverDir = dir;
+        if (e.dataTransfer) {
+            e.dataTransfer.dropEffect = 'move';
+        }
+    }
+
+    function handleDragLeave() {
+        dragOverDir = null;
+    }
 </script>
 
 <aside class="sidebar glass-morphism">
@@ -76,7 +121,15 @@
             <div class="dir-list">
                 {#each Object.entries(notes.directories) as [dir, dirNotes]}
                     <div class="dir-item">
-                        <div class="dir-toggle" onclick={() => toggleDir(dir)} role="button" tabindex="0">
+                        <div 
+                            class="dir-toggle {dragOverDir === dir ? 'drag-over' : ''}" 
+                            onclick={() => toggleDir(dir)} 
+                            role="button" 
+                            tabindex="0"
+                            ondragover={(e) => handleDragOver(e, dir)}
+                            ondragleave={handleDragLeave}
+                            ondrop={(e) => handleDrop(e, dir)}
+                        >
                             {#if expandedDirs.has(dir)}
                                 <ChevronDown size={16} />
                             {:else}
@@ -96,7 +149,14 @@
                                     <span>New Note</span>
                                 </button>
                                 {#each dirNotes as noteFile}
-                                    <div class="file-item" onclick={() => onSelectNote(`${dir}/${noteFile}`)} role="button" tabindex="0">
+                                    <div 
+                                        class="file-item" 
+                                        onclick={() => onSelectNote(`${dir}/${noteFile}`)} 
+                                        role="button" 
+                                        tabindex="0"
+                                        draggable="true"
+                                        ondragstart={(e) => handleDragStart(e, noteFile.replace('.md', ''), dir)}
+                                    >
                                         <FileText size={14} class="icon-gap" />
                                         <span class="file-name">{noteFile.replace('.md', '').replace(/_/g, ' ')}</span>
                                         <button class="delete-btn mini" onclick={(e) => handleDeleteNote(e, noteFile, dir)} title="Delete Note">
@@ -115,9 +175,21 @@
             <div class="section-header">
                 <span class="section-title">All Notes</span>
             </div>
-            <div class="file-list">
+            <div 
+                class="file-list {dragOverDir === '' ? 'drag-over' : ''}"
+                ondragover={(e) => handleDragOver(e, "")}
+                ondragleave={handleDragLeave}
+                ondrop={(e) => handleDrop(e, "")}
+            >
                 {#each notes.files as noteFile}
-                    <div class="file-item" onclick={() => onSelectNote(noteFile)} role="button" tabindex="0">
+                    <div 
+                        class="file-item" 
+                        onclick={() => onSelectNote(noteFile)} 
+                        role="button" 
+                        tabindex="0"
+                        draggable="true"
+                        ondragstart={(e) => handleDragStart(e, noteFile.replace('.md', ''), "")}
+                    >
                         <FileText size={14} class="icon-gap" />
                         <span class="file-name">{noteFile.replace('.md', '').replace(/_/g, ' ')}</span>
                         <button class="delete-btn mini" onclick={(e) => handleDeleteNote(e, noteFile)} title="Delete Note">
@@ -317,5 +389,12 @@
 
     .delete-btn.mini {
         padding: 2px;
+    }
+
+    .dir-toggle.drag-over,
+    .file-list.drag-over {
+        background: var(--glass);
+        outline: 2px dashed var(--accent);
+        outline-offset: -2px;
     }
 </style>

@@ -6,7 +6,7 @@ from typing import List, Optional
 
 from src.config import load_config
 from src.genai import get_model, summarize_text, paraphrase_text
-from src.storage import save_note, update_note, get_note_metadata, create_directory, delete_note, delete_directory, get_settings, save_settings
+from src.storage import save_note, update_note, get_note_metadata, create_directory, delete_note, delete_directory, get_settings, save_settings, move_note
 
 load_config()
 
@@ -44,6 +44,11 @@ class SummarizeRequest(BaseModel):
 
 class DirectoryRequest(BaseModel):
     name: str
+
+class MoveNoteRequest(BaseModel):
+    title: str
+    old_directory: str
+    new_directory: str
 
 class SettingsRequest(BaseModel):
     provider: str
@@ -108,6 +113,15 @@ def update_note_endpoint(req: UpdateNoteRequest):
         new_directory=req.new_directory
     )
     return {"message": "Note updated"}
+
+@app.post("/note/move")
+def move_note_endpoint(req: MoveNoteRequest):
+    move_note(
+        old_title=req.title,
+        old_directory=req.old_directory,
+        new_directory=req.new_directory
+    )
+    return {"message": "Note moved"}
 
 @app.post("/directory")
 def create_dir_endpoint(req: DirectoryRequest):
