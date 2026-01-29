@@ -14,9 +14,9 @@
     ];
 
     const models = {
-        google: ['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'],
-        ollama: ['llama3', 'mistral', 'phi3', 'gemma2'],
-        groq: ['llama3-8b-8192', 'llama3-70b-8192', 'mixtral-8x7b-32768', 'gemma-7b-it']
+        google: ['gemini-2.5-flash', 'gemini-3.0-flash', 'gemini-3.0-pro'],
+        ollama: ['ministral', 'granite4:tiny-h', 'olmo-3:7b-instruct'],
+        groq: ['openai/gpt-oss-120b', 'openai/gpt-oss-20b']
     };
 
     onMount(async () => {
