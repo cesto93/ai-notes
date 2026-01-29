@@ -12,7 +12,7 @@ coverage:
 	uv run pytest --cov=src --cov-report=html tests/
 
 docker-build:
-	docker build -t streamlit_app .
+	docker build -t ai-notes-app .
 
 start:
 	docker compose up

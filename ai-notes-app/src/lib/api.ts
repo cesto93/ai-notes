@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8000';
+const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:8000';
 
 export async function fetchNotes() {
     const res = await fetch(`${API_BASE}/notes`);

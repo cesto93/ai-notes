@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import os
 from typing import List, Optional
@@ -15,6 +16,7 @@ def get_current_llm():
     return get_model(provider=settings["provider"], model=settings["model"])
 
 app = FastAPI()
+
 
 # Enable CORS for Svelte development
 app.add_middleware(
@@ -165,3 +167,25 @@ def paraphrase_endpoint(req: SummarizeRequest):
     llm = get_current_llm()
     result = paraphrase_text(llm, req.text)
     return {"result": result}
+
+# Mount static files for the frontend
+if os.path.exists("static") or os.getenv("DOCKER_MODE"):
+    # Mount everything ELSE to the static directory
+    # Note: we mount this last, but for SPA we need a fallback
+    app.mount("/_app", StaticFiles(directory="static/_app"), name="svelte_assets")
+    
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # If it looks like a file (has extension), try to serve from static
+        path = os.path.join("static", full_path)
+        if os.path.isfile(path):
+            from fastapi.responses import FileResponse
+            return FileResponse(path)
+        
+        # Otherwise serve index.html for SPA
+        from fastapi.responses import FileResponse
+        index_path = os.path.join("static", "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        
+        raise HTTPException(status_code=404, detail="Not found")

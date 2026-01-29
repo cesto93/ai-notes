@@ -1,0 +1,11 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./notes:/app/notes
+      - ./.env:/app/.env
+    environment:
+      - NOTES_DIR=notes
+    restart: unless-stopped
