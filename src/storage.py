@@ -84,3 +84,51 @@ def get_note_metadata(filename_no_ext: str, directory: str):
         if res['argument'].replace(' ', '_') == filename_no_ext:
             return res
     return None
+
+
+def delete_note(title: str, directory: str) -> None:
+    """
+    Deletes a note file and its metadata.
+    """
+    notes_base_dir = os.path.join(os.path.dirname(__file__), "..", NOTES_DIR)
+    # The title passed might have underscores or spaces
+    filename_no_ext = title.replace(' ', '_')
+    filename = f"{filename_no_ext}.md"
+    filepath = os.path.join(notes_base_dir, directory, filename)
+
+    if os.path.exists(filepath):
+        os.remove(filepath)
+
+    # Remove metadata
+    db_path = os.path.join(os.path.dirname(__file__), "..", DB_FILE)
+    db = TinyDB(db_path)
+    Note = Query()
+    
+    # Try direct match first
+    if db.contains((Note.argument == title) & (Note.directory == directory)):
+        db.remove((Note.argument == title) & (Note.directory == directory))
+    else:
+        # Try matching by processed title (allowing for underscore/space mismatch)
+        all_notes = db.search(Note.directory == directory)
+        for n in all_notes:
+            if n['argument'].replace(' ', '_') == filename_no_ext:
+                db.remove(doc_ids=[n.doc_id])
+                break
+
+
+def delete_directory(directory: str) -> None:
+    """
+    Deletes a directory and all its contents (notes and metadata).
+    """
+    notes_base_dir = os.path.join(os.path.dirname(__file__), "..", NOTES_DIR)
+    target_dir = os.path.join(notes_base_dir, directory)
+
+    if os.path.exists(target_dir) and os.path.isdir(target_dir):
+        import shutil
+        shutil.rmtree(target_dir)
+
+    # Remove metadata for all notes in this directory
+    db_path = os.path.join(os.path.dirname(__file__), "..", DB_FILE)
+    db = TinyDB(db_path)
+    Note = Query()
+    db.remove(Note.directory == directory)

@@ -6,7 +6,7 @@ from typing import List, Optional
 
 from src.config import load_config
 from src.genai import get_model, summarize_text, paraphrase_text
-from src.storage import save_note, update_note, get_note_metadata, create_directory
+from src.storage import save_note, update_note, get_note_metadata, create_directory, delete_note, delete_directory
 
 load_config()
 llm = get_model(model="gemini-2.0-flash")
@@ -106,6 +106,23 @@ def update_note_endpoint(req: UpdateNoteRequest):
 def create_dir_endpoint(req: DirectoryRequest):
     create_directory(req.name)
     return {"message": "Directory created"}
+
+@app.delete("/note/{directory}/{title}")
+def delete_note_endpoint(directory: str, title: str):
+    # If directory is "none", it means no directory
+    actual_dir = "" if directory == "none" else directory
+    delete_note(title, actual_dir)
+    return {"message": "Note deleted"}
+
+@app.delete("/note/{title}")
+def delete_note_root_endpoint(title: str):
+    delete_note(title, "")
+    return {"message": "Note deleted"}
+
+@app.delete("/directory/{name}")
+def delete_dir_endpoint(name: str):
+    delete_directory(name)
+    return {"message": "Directory deleted"}
 
 @app.post("/summarize")
 def summarize_endpoint(req: SummarizeRequest):
