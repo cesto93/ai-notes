@@ -1,11 +1,13 @@
 <script lang="ts">
-    import { Edit, Sparkles, Wand2 } from 'lucide-svelte';
-    import { summarize, paraphrase } from '$lib/api';
+    import { Edit, Sparkles, Wand2, Network } from 'lucide-svelte';
+    import { summarize, paraphrase, mindmap } from '$lib/api';
     import { marked } from 'marked';
+    import Mermaid from './Mermaid.svelte';
 
     let { note, onEdit } = $props();
     
     let aiResult = $state('');
+    let isMindmap = $state(false);
     let loading = $state(false);
 
     let htmlContent = $derived(marked.parse(note.content || ''));
@@ -13,6 +15,7 @@
     async function handleSummarize() {
         loading = true;
         aiResult = '';
+        isMindmap = false;
         try {
             const data = await summarize(note.content);
             aiResult = data.result;
@@ -24,8 +27,21 @@
     async function handleParaphrase() {
         loading = true;
         aiResult = '';
+        isMindmap = false;
         try {
             const data = await paraphrase(note.content);
+            aiResult = data.result;
+        } finally {
+            loading = false;
+        }
+    }
+
+    async function handleMindmap() {
+        loading = true;
+        aiResult = '';
+        isMindmap = true;
+        try {
+            const data = await mindmap(note.content);
             aiResult = data.result;
         } finally {
             loading = false;
@@ -51,6 +67,10 @@
                 <Wand2 size={18} class="icon-gap" />
                 Paraphrase
             </button>
+            <button class="action-btn mindmap" onclick={handleMindmap} disabled={loading}>
+                <Network size={18} class="icon-gap" />
+                Mindmap
+            </button>
             <button class="edit-btn" onclick={onEdit}>
                 <Edit size={18} />
             </button>
@@ -66,7 +86,11 @@
                     <button class="close-ai" onclick={() => aiResult = ''}>&times;</button>
                 </div>
                 <div class="ai-content">
-                    {@html marked.parse(aiResult)}
+                    {#if isMindmap}
+                        <Mermaid code={aiResult} />
+                    {:else}
+                        {@html marked.parse(aiResult)}
+                    {/if}
                 </div>
             </div>
         {/if}
@@ -144,6 +168,7 @@
 
     .summarize { color: #f59e0b; }
     .paraphrase { color: #10b981; }
+    .mindmap { color: #8b5cf6; }
 
     .edit-btn {
         padding: 10px;

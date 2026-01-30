@@ -98,3 +98,11 @@ export async function updateSettings(settings: { provider: string; model: string
     });
     return res.json();
 }
+export async function mindmap(text: string) {
+    const res = await fetch(`${API_BASE}/mindmap`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+    });
+    return res.json();
+}

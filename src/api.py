@@ -6,7 +6,7 @@ import os
 from typing import List, Optional
 
 from src.config import load_config
-from src.genai import get_model, summarize_text, paraphrase_text
+from src.genai import get_model, summarize_text, paraphrase_text, generate_mindmap
 from src.storage import save_note, update_note, get_note_metadata, create_directory, delete_note, delete_directory, get_settings, save_settings, move_note
 
 load_config()
@@ -166,6 +166,12 @@ def summarize_endpoint(req: SummarizeRequest):
 def paraphrase_endpoint(req: SummarizeRequest):
     llm = get_current_llm()
     result = paraphrase_text(llm, req.text)
+    return {"result": result}
+
+@app.post("/mindmap")
+def mindmap_endpoint(req: SummarizeRequest):
+    llm = get_current_llm()
+    result = generate_mindmap(llm, req.text)
     return {"result": result}
 
 # Mount static files for the frontend

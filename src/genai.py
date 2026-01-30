@@ -110,8 +110,36 @@ def extract_metadata(llm: BaseChatModel, text: str) -> NoteMetadata:
 
     structured_llm = llm.with_structured_output(schema=NoteMetadata)
     prompt = prompt_template.invoke({"text": text})
-    result = structured_llm.invoke(prompt)
     if isinstance(result, NoteMetadata):
         return result
     else:
         raise ValueError("The result is not of type NoteMetadata.")
+
+
+def generate_mindmap(llm: BaseChatModel, text: str) -> str:
+    """
+    Generates a Mermaid mindmap from the given text using the provided language model.
+
+    Args:
+        llm (BaseChatModel): The language model to use for generation.
+        text (str): The text to transform into a mindmap.
+
+    Returns:
+        str: The Mermaid mindmap syntax.
+    """
+    prompt_template = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "Create a Mermaid.js mindmap syntax for the following text. "
+                "Only return the Mermaid syntax starting with 'mindmap' and nothing else. "
+                "Do not use markdown code blocks. "
+                "Ensure the syntax is valid for Mermaid.js.",
+            ),
+            ("human", "{text}"),
+        ]
+    )
+
+    prompt = prompt_template.invoke({"text": text})
+    result = llm.invoke(prompt)
+    return result.content
