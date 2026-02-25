@@ -6,33 +6,33 @@ RUN bun install
 COPY ai-notes-app/ .
 RUN bun run build
 
-# Stage 2: Final image
-FROM python:3.12-slim
+# Stage 2: Build the Go backend
+FROM golang:1.23-alpine AS backend-builder
+WORKDIR /app/backend
+COPY backend-go/go.mod backend-go/go.sum ./
+RUN go mod download
+COPY backend-go/ .
+RUN go build -o main main.go
+
+# Stage 3: Final image
+FROM alpine:latest
 WORKDIR /app
 
-# Install uv installer
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uv/bin/uv
+# Install dependencies if needed (none for static binary)
+RUN apk add --no-cache libc6-compat
 
-# Install system dependencies if any (none needed for now based on pyproject.toml)
-
-# Install Python dependencies
-COPY pyproject.toml uv.lock ./
-RUN /uv/bin/uv sync --frozen --no-cache
-
-# Copy application code
-COPY src ./src
-COPY main.py .
-
-# Copy built frontend to the 'static' directory served by FastAPI
+# Copy built frontend to the 'static' directory served by Go
 COPY --from=frontend-builder /app/frontend/build ./static
+
+# Copy built backend
+COPY --from=backend-builder /app/backend/main .
 
 # Ensure the 'notes' directory exists or is mounted
 RUN mkdir -p notes
 
 # Expose port and set environment variables
 EXPOSE 8000
-ENV DOCKER_MODE=1
-ENV PYTHONUNBUFFERED=1
+ENV PORT=8000
 
 # Run the application
-CMD ["/uv/bin/uv", "run", "uvicorn", "src.api:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["./main"]
