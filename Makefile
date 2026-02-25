@@ -2,9 +2,6 @@ run:
 	@echo "Starting backend and frontend..."
 	(trap 'kill 0' SIGINT; make api-go & make frontend)
 
-api:
-	uv run uvicorn src.api:app --reload --host 0.0.0.0 --port 8000
-
 api-go:
 	cd backend-go && go run main.go
 
