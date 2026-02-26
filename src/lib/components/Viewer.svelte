@@ -18,7 +18,9 @@
         isMindmap = false;
         try {
             const data = await summarize(note.content);
-            aiResult = data.result;
+            aiResult = data;
+        } catch (e) {
+            aiResult = `Error: ${e}`;
         } finally {
             loading = false;
         }
@@ -30,7 +32,9 @@
         isMindmap = false;
         try {
             const data = await paraphrase(note.content);
-            aiResult = data.result;
+            aiResult = data;
+        } catch (e) {
+            aiResult = `Error: ${e}`;
         } finally {
             loading = false;
         }
@@ -42,7 +46,9 @@
         isMindmap = true;
         try {
             const data = await mindmap(note.content);
-            aiResult = data.result;
+            aiResult = data;
+        } catch (e) {
+            aiResult = `Error: ${e}`;
         } finally {
             loading = false;
         }
