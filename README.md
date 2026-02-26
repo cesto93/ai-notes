@@ -1,6 +1,6 @@
-# 🧠 AI Notes
+# 🧠 AI Notes (Tauri Edition)
 
-AI Notes is a modern, AI-enhanced note-taking application designed to help you capture, organize, and process your thoughts. It combines a powerful **FastAPI** backend with a sleek **SvelteKit** frontend, leveraging Large Language Models (LLMs) to provide intelligent features like summarization, paraphrasing, and mindmap generation.
+AI Notes is a modern, AI-enhanced **desktop** application designed to help you capture, organize, and process your thoughts. It combines a high-performance **Rust** and **Tauri** backend with a sleek **Svelte 5** frontend, leveraging Google Gemini to provide intelligent features like summarization, paraphrasing, and mindmap generation.
 
 ## ✨ Features
 
@@ -9,25 +9,26 @@ AI Notes is a modern, AI-enhanced note-taking application designed to help you c
     - **Summarization:** Condense long notes into concise summaries.
     - **Paraphrasing:** Rewrite notes for better clarity and flow.
     - **Mindmaps:** Automatically generate Mermaid.js mindmaps from your content.
-- 🔌 **Provider Agnostic:** Supports multiple LLM providers, including **Google Gemini**, **Ollama**, and **Groq**.
-- 🗃️ **Lightweight Storage:** Uses Markdown files for notes and TinyDB for metadata/settings.
-- 🐳 **Docker Ready:** Easily deployable via Docker and Docker Compose.
+- ⚡ **Native Performance:** Built with Tauri for a lightweight and fast desktop experience.
+- 📂 **Local-First:** Your notes are stored as Markdown files on your own machine.
+- 🗃️ **Simple Storage:** Uses Markdown for content and a local JSON file for metadata/settings.
 
 ## 🛠️ Technology Stack
 
-- **Backend:** [FastAPI](https://fastapi.tiangolo.com/) (Python)
-- **Frontend:** [SvelteKit](https://kit.svelte.dev/) (TypeScript/Tailwind CSS)
-- **AI Orchestration:** [LangChain](https://python.langchain.com/)
-- **Package Managers:** [uv](https://github.com/astral-sh/uv) (Python) and [Bun](https://bun.sh/) (Frontend)
-- **Database:** [TinyDB](https://tinydb.readthedocs.io/)
+- **Backend:** [Tauri](https://tauri.app/) & [Rust](https://www.rust-lang.org/)
+- **Frontend:** [Svelte 5](https://svelte.dev/) (Vite / TypeScript / Tailwind CSS)
+- **AI Integration:** [Google Gemini API](https://ai.google.dev/)
+- **Package Manager:** [Bun](https://bun.sh/)
+- **Styling:** Tailwind CSS
+- **Diagrams:** [Mermaid.js](https://mermaid.js.org/)
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- [uv](https://github.com/astral-sh/uv) installed
+- [Rust](https://www.rust-lang.org/tools/install) installed
 - [Bun](https://bun.sh/) installed
-- (Optional) Docker and Docker Compose
+- (Optional) [Make](https://www.gnu.org/software/make/) for easier commands
 
 ### Local Development
 
@@ -38,33 +39,37 @@ AI Notes is a modern, AI-enhanced note-taking application designed to help you c
    ```
 
 2. **Set up Environment Variables:**
-   Create a `.env` file in the root directory:
+   Create a `.env` file in the root directory (or in `ai-notes-app-tauri/src-tauri/`) with your Google API key:
    ```env
    GOOGLE_API_KEY="your-google-api-key"
-   GROQ_API_KEY="your-groq-api-key"
-   # Add other keys as needed
    ```
 
-3. **Install dependencies and run (using Makefile):**
+3. **Run the application:**
+   Using Makefile:
    ```bash
    make run
    ```
-   This will start both the FastAPI backend (port 8000) and the SvelteKit frontend (port 5173).
+   Or manually:
+   ```bash
+   cd ai-notes-app-tauri
+   bun install
+   bun run tauri dev
+   ```
 
-### Docker Deployment
+### Building for Production
 
-To run the entire stack using Docker:
 ```bash
-make start
+make build
 ```
-The application will be accessible at `http://localhost:8000`.
+This will generate the native installers for your operating system in `ai-notes-app-tauri/src-tauri/target/release/bundle/`.
 
 ## 📂 Project Structure
 
-- `src/`: Backend FastAPI application logic.
-- `ai-notes-app/`: Frontend SvelteKit application.
+- `ai-notes-app-tauri/`: Main application directory.
+    - `src/`: Frontend Svelte 5 application.
+    - `src-tauri/`: Backend Rust application logic.
 - `notes/`: Directory where your markdown notes are stored.
-- `notes_db.json`: TinyDB file for metadata.
+- `notes_db.json`: Local JSON file for metadata and settings.
 
 ## 📜 License
 
