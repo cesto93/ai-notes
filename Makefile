@@ -3,3 +3,5 @@ run:
 
 build:
 	cd ai-notes-app-tauri && bun run tauri build
+clean:
+	cd ai-notes-app-tauri/src-tauri && cargo clean
