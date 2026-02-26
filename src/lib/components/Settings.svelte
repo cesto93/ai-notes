@@ -14,7 +14,7 @@
     ];
 
     const models = {
-        google: ['gemini-2.5-flash', 'gemini-3.0-flash', 'gemini-3.0-pro'],
+        google: ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3-flash-preview', 'gemini-3.1-pro-preview'],
         ollama: ['ministral', 'granite4:tiny-h', 'olmo-3:7b-instruct'],
         groq: ['openai/gpt-oss-120b', 'openai/gpt-oss-20b']
     };
