@@ -1,4 +1,5 @@
 use crate::models::{Note, NoteMetadata, Settings, UpdateNoteRequest, MoveNoteRequest, NoteListResponse};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -6,13 +7,24 @@ use std::sync::Mutex;
 use once_cell::sync::Lazy;
 
 static MU: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+static TEST_DIR: Lazy<Mutex<Option<PathBuf>>> = Lazy::new(|| Mutex::new(None));
 
 fn get_notes_dir() -> PathBuf {
-    PathBuf::from("notes")
+    let test_dir = TEST_DIR.lock().unwrap();
+    if let Some(ref path) = *test_dir {
+        path.join("notes")
+    } else {
+        PathBuf::from("notes")
+    }
 }
 
 fn get_db_file() -> PathBuf {
-    PathBuf::from("notes_db.json")
+    let test_dir = TEST_DIR.lock().unwrap();
+    if let Some(ref path) = *test_dir {
+        path.join("notes_db.json")
+    } else {
+        PathBuf::from("notes_db.json")
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -275,4 +287,91 @@ pub fn save_settings(provider: String, model: String) -> Result<(), String> {
     write_db(notes, Settings { provider, model })
 }
 
-use serde::{Deserialize, Serialize};
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+    use crate::models::UpdateNoteRequest;
+
+    fn setup_test() -> tempfile::TempDir {
+        let dir = tempdir().expect("Failed to create temp dir");
+        let mut test_dir = TEST_DIR.lock().unwrap();
+        *test_dir = Some(dir.path().to_path_buf());
+        dir
+    }
+
+    #[test]
+    fn test_save_and_list_notes() {
+        let _dir = setup_test();
+        
+        save_note("Hello World", "Test Note", "").expect("Save failed");
+        save_note("Sub Note Content", "Sub Note", "drafts").expect("Save failed");
+
+        let notes = list_notes().expect("List failed");
+        assert!(notes.files.contains(&"Test_Note.md".to_string()));
+        assert!(notes.directories.contains_key("drafts"));
+        assert!(notes.directories.get("drafts").unwrap().contains(&"Sub_Note.md".to_string()));
+    }
+
+    #[test]
+    fn test_get_note() {
+        let _dir = setup_test();
+        
+        save_note("Hello World", "Test Note", "").expect("Save failed");
+        
+        let note = get_note("Test_Note.md").expect("Get failed");
+        assert_eq!(note.title, "Test Note");
+        assert_eq!(note.content, "Hello World");
+        assert_eq!(note.directory, "");
+
+        save_note("Sub Content", "Sub Note", "folder").expect("Save failed");
+        let sub_note = get_note("folder/Sub_Note.md").expect("Get failed");
+        assert_eq!(sub_note.title, "Sub Note");
+        assert_eq!(sub_note.directory, "folder");
+    }
+
+    #[test]
+    fn test_update_note() {
+        let _dir = setup_test();
+        
+        save_note("Old Content", "Old Title", "").expect("Save failed");
+        
+        let req = UpdateNoteRequest {
+            old_title: "Old Title".to_string(),
+            old_directory: "".to_string(),
+            new_title: "New Title".to_string(),
+            new_directory: "archived".to_string(),
+            new_content: "New Content".to_string(),
+        };
+        
+        update_note(req).expect("Update failed");
+        
+        let note = get_note("archived/New_Title.md").expect("Get failed");
+        assert_eq!(note.title, "New Title");
+        assert_eq!(note.content, "New Content");
+        assert_eq!(note.directory, "archived");
+        
+        assert!(get_note("Old_Title.md").is_err());
+    }
+
+    #[test]
+    fn test_delete_note() {
+        let _dir = setup_test();
+        
+        save_note("Content", "Delete Me", "").expect("Save failed");
+        assert!(get_note("Delete_Me.md").is_ok());
+        
+        delete_note("Delete Me", "").expect("Delete failed");
+        assert!(get_note("Delete_Me.md").is_err());
+    }
+
+    #[test]
+    fn test_settings() {
+        let _dir = setup_test();
+        
+        save_settings("openai".to_string(), "gpt-4".to_string()).expect("Save settings failed");
+        let settings = get_settings().expect("Get settings failed");
+        assert_eq!(settings.provider, "openai");
+        assert_eq!(settings.model, "gpt-4");
+    }
+}
