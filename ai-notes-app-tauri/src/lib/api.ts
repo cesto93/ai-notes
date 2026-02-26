@@ -1,22 +1,19 @@
-const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:8000';
+import { invoke } from '@tauri-apps/api/core';
 
 export async function fetchNotes() {
-    const res = await fetch(`${API_BASE}/notes`);
-    return res.json();
+    return await invoke('list_notes');
 }
 
 export async function fetchNote(path: string) {
-    const res = await fetch(`${API_BASE}/note/${encodeURIComponent(path)}`);
-    return res.json();
+    return await invoke('get_note', { path });
 }
 
 export async function saveNote(note: { title: string; content: string; directory: string }) {
-    const res = await fetch(`${API_BASE}/note`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(note)
+    return await invoke('save_note', {
+        content: note.content,
+        title: note.title,
+        directory: note.directory
     });
-    return res.json();
 }
 
 export async function updateNote(data: {
@@ -26,83 +23,46 @@ export async function updateNote(data: {
     new_title: string;
     new_directory: string;
 }) {
-    const res = await fetch(`${API_BASE}/note`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    });
-    return res.json();
+    return await invoke('update_note', { req: data });
 }
 
 export async function moveNote(title: string, old_directory: string, new_directory: string) {
-    const res = await fetch(`${API_BASE}/note/move`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, old_directory, new_directory })
+    return await invoke('move_note', {
+        req: { title, old_directory, new_directory }
     });
-    return res.json();
 }
 
 export async function createDirectory(name: string) {
-    const res = await fetch(`${API_BASE}/directory`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
-    });
-    return res.json();
+    return await invoke('create_directory', { name });
 }
 
 export async function summarize(text: string) {
-    const res = await fetch(`${API_BASE}/summarize`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-    });
-    return res.json();
+    return await invoke('summarize', { text });
 }
 
 export async function paraphrase(text: string) {
-    const res = await fetch(`${API_BASE}/paraphrase`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-    });
-    return res.json();
+    return await invoke('paraphrase', { text });
 }
 
 export async function deleteNote(title: string, directory: string = "") {
-    const dirParam = directory || "none";
-    const res = await fetch(`${API_BASE}/note/${encodeURIComponent(dirParam)}/${encodeURIComponent(title)}`, {
-        method: 'DELETE'
-    });
-    return res.json();
+    return await invoke('delete_note', { title, directory });
 }
 
 export async function deleteDirectory(name: string) {
-    const res = await fetch(`${API_BASE}/directory/${encodeURIComponent(name)}`, {
-        method: 'DELETE'
-    });
-    return res.json();
+    return await invoke('delete_directory', { name });
 }
 
 export async function fetchSettings() {
-    const res = await fetch(`${API_BASE}/settings`);
-    return res.json();
+    return await invoke('get_settings');
 }
 
 export async function updateSettings(settings: { provider: string; model: string }) {
-    const res = await fetch(`${API_BASE}/settings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
+    return await invoke('save_settings', {
+        provider: settings.provider,
+        model: settings.model
     });
-    return res.json();
 }
+
 export async function mindmap(text: string) {
-    const res = await fetch(`${API_BASE}/mindmap`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-    });
-    return res.json();
+    return await invoke('mindmap', { text });
 }
