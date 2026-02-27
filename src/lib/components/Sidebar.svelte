@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { FileText, Folder, Plus, ChevronRight, ChevronDown, List as ListIcon, Trash2, Settings as SettingsIcon, Edit3, RotateCw } from 'lucide-svelte';
+    import { FileText, Folder, Plus, ChevronRight, ChevronDown, List as ListIcon, Trash2, Settings as SettingsIcon, Edit3, RotateCw, FolderPlus } from 'lucide-svelte';
     import { createDirectory, deleteNote, deleteDirectory, moveNote, renameNote, renameDirectory, refreshNotes } from '$lib/api';
     import type { NoteListResponse } from '$lib/types';
 
@@ -148,6 +148,22 @@
         menu = null;
     }
 
+    async function handleNewSubdir() {
+        if (!menu || menu.type !== 'dir') return;
+        const parentDir = menu.target;
+        const name = prompt(`New subdirectory name in "${parentDir}":`);
+        if (name && name.trim()) {
+            const trimmedName = name.trim();
+            const fullPath = parentDir ? `${parentDir}/${trimmedName}` : trimmedName;
+            await createDirectory(fullPath);
+            if (parentDir && !expandedDirs.has(parentDir)) {
+                toggleDir(parentDir);
+            }
+            onRefresh();
+        }
+        menu = null;
+    }
+
     interface TreeNode {
         files: string[];
         children: Record<string, TreeNode>;
@@ -210,7 +226,7 @@
                 </button>
                 
                 {#each Object.entries(node.children) as [childName, childNode]}
-                    {@render directoryNode(childName, childNode, 0)}
+                    {@render directoryNode(childName, childNode, depth + 1)}
                 {/each}
 
                 {#each node.files as noteFile}
@@ -324,6 +340,17 @@
         style="top: {menu.y}px; left: {menu.x}px"
         oncontextmenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
     >
+        {#if menu.type === 'dir'}
+            <button class="menu-item" onclick={() => { if (menu) onNewNote(menu.target); menu = null; }}>
+                <Plus size={16} class="icon-gap" />
+                New Note
+            </button>
+            <button class="menu-item" onclick={handleNewSubdir}>
+                <FolderPlus size={16} class="icon-gap" />
+                New Subdirectory
+            </button>
+            <div class="menu-divider"></div>
+        {/if}
         <button class="menu-item" onclick={handleRename}>
             <Edit3 size={16} class="icon-gap" />
             Rename

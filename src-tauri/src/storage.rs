@@ -127,6 +127,11 @@ pub fn list_notes() -> Result<NoteListResponse, String> {
                 if name.starts_with('.') {
                     continue;
                 }
+                let rel_path = path.strip_prefix(base).map_err(|e| e.to_string())?;
+                let rel_path_str = rel_path.to_str().unwrap_or("");
+                if !rel_path_str.is_empty() {
+                    dirs.entry(rel_path_str.to_string()).or_default();
+                }
                 walk(&path, base, root_files, dirs)?;
             } else if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("md") {
                 let rel_path = path.strip_prefix(base).map_err(|e| e.to_string())?;
