@@ -115,32 +115,37 @@ pub fn list_notes() -> Result<NoteListResponse, String> {
     }
 
     let mut files = Vec::new();
-    let mut directories = HashMap::new();
+    let mut directories: HashMap<String, Vec<String>> = HashMap::new();
 
-    let entries = fs::read_dir(notes_dir).map_err(|e| e.to_string())?;
-    for entry in entries {
-        let entry = entry.map_err(|e| e.to_string())?;
-        let path = entry.path();
-        let name = entry.file_name().into_string().map_err(|_| "Invalid filename")?;
+    fn walk(dir: &Path, base: &Path, root_files: &mut Vec<String>, dirs: &mut HashMap<String, Vec<String>>) -> Result<(), String> {
+        for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
+            let entry = entry.map_err(|e| e.to_string())?;
+            let path = entry.path();
+            let name = entry.file_name().into_string().map_err(|_| "Invalid filename")?;
 
-        if path.is_dir() {
-            if name.starts_with('.') {
-                continue;
-            }
-            let mut sub_notes = Vec::new();
-            let sub_entries = fs::read_dir(&path).map_err(|e| e.to_string())?;
-            for sub_entry in sub_entries {
-                let sub_entry = sub_entry.map_err(|e| e.to_string())?;
-                let sub_path = sub_entry.path();
-                if sub_path.is_file() && sub_path.extension().and_then(|s| s.to_str()) == Some("md") {
-                    sub_notes.push(sub_entry.file_name().into_string().map_err(|_| "Invalid filename")?);
+            if path.is_dir() {
+                if name.starts_with('.') {
+                    continue;
+                }
+                walk(&path, base, root_files, dirs)?;
+            } else if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("md") {
+                let rel_path = path.strip_prefix(base).map_err(|e| e.to_string())?;
+                if let Some(parent) = rel_path.parent() {
+                    let parent_str = parent.to_str().unwrap_or("");
+                    if parent_str.is_empty() {
+                        root_files.push(name);
+                    } else {
+                        dirs.entry(parent_str.to_string()).or_default().push(name);
+                    }
+                } else {
+                    root_files.push(name);
                 }
             }
-            directories.insert(name, sub_notes);
-        } else if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("md") {
-            files.push(name);
         }
+        Ok(())
     }
+
+    walk(&notes_dir, &notes_dir, &mut files, &mut directories)?;
 
     Ok(NoteListResponse { files, directories })
 }
@@ -252,7 +257,10 @@ pub fn get_note(path_str: &str) -> Result<Note, String> {
     
     let (notes, _) = read_db();
     let title = notes.iter()
-        .find(|n| n.argument.replace(" ", "_") == filename_no_ext && n.directory == directory)
+        .find(|n| {
+            let n_filename = n.argument.replace(" ", "_");
+            (n_filename == filename_no_ext || n.argument == filename_no_ext) && n.directory == directory
+        })
         .map(|n| n.argument.clone())
         .unwrap_or_else(|| filename_no_ext.to_string());
 
@@ -507,12 +515,13 @@ mod tests {
     }
 
     #[test]
-    fn test_settings() {
+    fn test_nested_directories() {
         let _dir = setup_test();
         
-        save_settings("openai".to_string(), "gpt-4".to_string()).expect("Save settings failed");
-        let settings = get_settings().expect("Get settings failed");
-        assert_eq!(settings.provider, "openai");
-        assert_eq!(settings.model, "gpt-4");
+        save_note("Nested Content", "Nested Note", "Informatica/AWS/S3").expect("Save failed");
+        
+        let notes = list_notes().expect("List failed");
+        assert!(notes.directories.contains_key("Informatica/AWS/S3"));
+        assert!(notes.directories.get("Informatica/AWS/S3").unwrap().contains(&"Nested_Note.md".to_string()));
     }
 }

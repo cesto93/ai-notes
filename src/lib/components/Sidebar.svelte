@@ -147,7 +147,94 @@
         }
         menu = null;
     }
+
+    interface TreeNode {
+        files: string[];
+        children: Record<string, TreeNode>;
+        fullPath: string;
+    }
+
+    function buildTree(directories: Record<string, string[]>): TreeNode {
+        const root: TreeNode = { files: [], children: {}, fullPath: "" };
+        
+        for (const [path, files] of Object.entries(directories)) {
+            const parts = path.split('/');
+            let current = root;
+            let currentPath = "";
+            
+            for (const part of parts) {
+                currentPath = currentPath ? `${currentPath}/${part}` : part;
+                if (!current.children[part]) {
+                    current.children[part] = { files: [], children: {}, fullPath: currentPath };
+                }
+                current = current.children[part];
+            }
+            current.files = files;
+        }
+        return root;
+    }
+
+    let directoryTree = $derived(buildTree(notes.directories));
 </script>
+
+{#snippet directoryNode(name: string, node: TreeNode, depth: number)}
+    <div class="dir-item" style="margin-left: {depth * 12}px">
+        <div 
+            class="dir-toggle {dragOverDir === node.fullPath ? 'drag-over' : ''}" 
+            onclick={() => toggleDir(node.fullPath)} 
+            onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleDir(node.fullPath)}
+            role="button" 
+            tabindex="0"
+            ondragover={(e) => handleDragOver(e, node.fullPath)}
+            ondragleave={handleDragLeave}
+            ondrop={(e) => handleDrop(e, node.fullPath)}
+            oncontextmenu={(e) => handleContextMenu(e, 'dir', node.fullPath)}
+        >
+            {#if expandedDirs.has(node.fullPath)}
+                <ChevronDown size={16} />
+            {:else}
+                <ChevronRight size={16} />
+            {/if}
+            <Folder size={16} class="icon-gap" />
+            <span class="dir-name">{name}</span>
+            <button class="delete-btn" onclick={(e) => handleDeleteDir(e, node.fullPath)} title="Delete Directory">
+                <Trash2 size={14} />
+            </button>
+        </div>
+        
+        {#if expandedDirs.has(node.fullPath)}
+            <div class="dir-children fade-in">
+                <button class="file-item new-in-dir" onclick={() => onNewNote(node.fullPath)}>
+                    <Plus size={14} class="icon-gap" />
+                    <span>New Note</span>
+                </button>
+                
+                {#each Object.entries(node.children) as [childName, childNode]}
+                    {@render directoryNode(childName, childNode, 0)}
+                {/each}
+
+                {#each node.files as noteFile}
+                    <div 
+                        class="file-item" 
+                        onclick={() => onSelectNote(`${node.fullPath}/${noteFile}`)} 
+                        onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectNote(`${node.fullPath}/${noteFile}`)}
+                        role="button" 
+                        tabindex="0"
+                        draggable="true"
+                        ondragstart={(e) => handleDragStart(e, noteFile.replace('.md', ''), node.fullPath)}
+                        oncontextmenu={(e) => handleContextMenu(e, 'note', { noteFile, directory: node.fullPath })}
+                    >
+                        <FileText size={14} class="icon-gap" />
+                        <span class="file-name">{noteFile.replace('.md', '').replace(/_/g, ' ')}</span>
+                        <button class="delete-btn mini" onclick={(e) => handleDeleteNote(e, noteFile, node.fullPath)} title="Delete Note">
+                            <Trash2 size={12} />
+                        </button>
+                    </div>
+                {/each}
+            </div>
+        {/if}
+    </div>
+{/snippet}
 
 <svelte:window 
     onclick={() => menu = null} 
@@ -190,58 +277,8 @@
             {/if}
 
             <div class="dir-list">
-                {#each Object.entries(notes.directories) as [dir, dirNotes]}
-                    <div class="dir-item">
-                        <div 
-                            class="dir-toggle {dragOverDir === dir ? 'drag-over' : ''}" 
-                            onclick={() => toggleDir(dir)} 
-                            onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleDir(dir)}
-                            role="button" 
-                            tabindex="0"
-                            ondragover={(e) => handleDragOver(e, dir)}
-                            ondragleave={handleDragLeave}
-                            ondrop={(e) => handleDrop(e, dir)}
-                            oncontextmenu={(e) => handleContextMenu(e, 'dir', dir)}
-                        >
-                            {#if expandedDirs.has(dir)}
-                                <ChevronDown size={16} />
-                            {:else}
-                                <ChevronRight size={16} />
-                            {/if}
-                            <Folder size={16} class="icon-gap" />
-                            <span class="dir-name">{dir}</span>
-                            <button class="delete-btn" onclick={(e) => handleDeleteDir(e, dir)} title="Delete Directory">
-                                <Trash2 size={14} />
-                            </button>
-                        </div>
-                        
-                        {#if expandedDirs.has(dir)}
-                            <div class="dir-children fade-in">
-                                <button class="file-item new-in-dir" onclick={() => onNewNote(dir)}>
-                                    <Plus size={14} class="icon-gap" />
-                                    <span>New Note</span>
-                                </button>
-                                {#each dirNotes as noteFile}
-                                    <div 
-                                        class="file-item" 
-                                        onclick={() => onSelectNote(`${dir}/${noteFile}`)} 
-                                        onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectNote(`${dir}/${noteFile}`)}
-                                        role="button" 
-                                        tabindex="0"
-                                        draggable="true"
-                                        ondragstart={(e) => handleDragStart(e, noteFile.replace('.md', ''), dir)}
-                                        oncontextmenu={(e) => handleContextMenu(e, 'note', { noteFile, directory: dir })}
-                                    >
-                                        <FileText size={14} class="icon-gap" />
-                                        <span class="file-name">{noteFile.replace('.md', '').replace(/_/g, ' ')}</span>
-                                        <button class="delete-btn mini" onclick={(e) => handleDeleteNote(e, noteFile, dir)} title="Delete Note">
-                                            <Trash2 size={12} />
-                                        </button>
-                                    </div>
-                                {/each}
-                            </div>
-                        {/if}
-                    </div>
+                {#each Object.entries(directoryTree.children) as [name, node]}
+                    {@render directoryNode(name, node, 0)}
                 {/each}
             </div>
         </div>
