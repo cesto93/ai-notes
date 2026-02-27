@@ -238,38 +238,37 @@
             </div>
         </div>
 
-        <div class="section">
-            <div class="section-header">
-                <span class="section-title">All Notes</span>
+        {#if notes.files.length > 0}
+            <div class="root-files-section">
+                <div 
+                    class="file-list {dragOverDir === '' ? 'drag-over' : ''}"
+                    role="region"
+                    aria-label="Notes in root directory"
+                    ondragover={(e) => handleDragOver(e, "")}
+                    ondragleave={handleDragLeave}
+                    ondrop={(e) => handleDrop(e, "")}
+                >
+                    {#each notes.files as noteFile}
+                        <div 
+                            class="file-item" 
+                            onclick={() => onSelectNote(noteFile)} 
+                            onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectNote(noteFile)}
+                            role="button" 
+                            tabindex="0"
+                            draggable="true"
+                            ondragstart={(e) => handleDragStart(e, noteFile.replace('.md', ''), "")}
+                            oncontextmenu={(e) => handleContextMenu(e, 'note', { noteFile, directory: "" })}
+                        >
+                            <FileText size={14} class="icon-gap" />
+                            <span class="file-name">{noteFile.replace('.md', '').replace(/_/g, ' ')}</span>
+                            <button class="delete-btn mini" onclick={(e) => handleDeleteNote(e, noteFile)} title="Delete Note">
+                                <Trash2 size={12} />
+                            </button>
+                        </div>
+                    {/each}
+                </div>
             </div>
-            <div 
-                class="file-list {dragOverDir === '' ? 'drag-over' : ''}"
-                role="region"
-                aria-label="Notes in root directory"
-                ondragover={(e) => handleDragOver(e, "")}
-                ondragleave={handleDragLeave}
-                ondrop={(e) => handleDrop(e, "")}
-            >
-                {#each notes.files as noteFile}
-                    <div 
-                        class="file-item" 
-                        onclick={() => onSelectNote(noteFile)} 
-                        onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectNote(noteFile)}
-                        role="button" 
-                        tabindex="0"
-                        draggable="true"
-                        ondragstart={(e) => handleDragStart(e, noteFile.replace('.md', ''), "")}
-                        oncontextmenu={(e) => handleContextMenu(e, 'note', { noteFile, directory: "" })}
-                    >
-                        <FileText size={14} class="icon-gap" />
-                        <span class="file-name">{noteFile.replace('.md', '').replace(/_/g, ' ')}</span>
-                        <button class="delete-btn mini" onclick={(e) => handleDeleteNote(e, noteFile)} title="Delete Note">
-                            <Trash2 size={12} />
-                        </button>
-                    </div>
-                {/each}
-            </div>
-        </div>
+        {/if}
     </div>
 
 </aside>
@@ -278,7 +277,7 @@
     <div 
         class="context-menu glass-morphism fade-in" 
         style="top: {menu.y}px; left: {menu.x}px"
-        oncontextmenu|preventDefault|stopPropagation
+        oncontextmenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
     >
         <button class="menu-item" onclick={handleRename}>
             <Edit3 size={16} class="icon-gap" />
