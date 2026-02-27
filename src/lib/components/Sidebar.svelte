@@ -124,6 +124,7 @@
                         <div 
                             class="dir-toggle {dragOverDir === dir ? 'drag-over' : ''}" 
                             onclick={() => toggleDir(dir)} 
+                            onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleDir(dir)}
                             role="button" 
                             tabindex="0"
                             ondragover={(e) => handleDragOver(e, dir)}
@@ -152,6 +153,7 @@
                                     <div 
                                         class="file-item" 
                                         onclick={() => onSelectNote(`${dir}/${noteFile}`)} 
+                                        onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectNote(`${dir}/${noteFile}`)}
                                         role="button" 
                                         tabindex="0"
                                         draggable="true"
@@ -177,6 +179,8 @@
             </div>
             <div 
                 class="file-list {dragOverDir === '' ? 'drag-over' : ''}"
+                role="region"
+                aria-label="Notes in root directory"
                 ondragover={(e) => handleDragOver(e, "")}
                 ondragleave={handleDragLeave}
                 ondrop={(e) => handleDrop(e, "")}
@@ -185,6 +189,7 @@
                     <div 
                         class="file-item" 
                         onclick={() => onSelectNote(noteFile)} 
+                        onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectNote(noteFile)}
                         role="button" 
                         tabindex="0"
                         draggable="true"
@@ -319,7 +324,7 @@
         background: var(--glass);
     }
 
-    .icon-gap {
+    :global(.icon-gap) {
         margin-right: 10px;
         flex-shrink: 0;
     }

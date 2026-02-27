@@ -4,10 +4,16 @@
 
     let { note, isNew = false, onSave, onCancel } = $props();
     
-    let title = $state(note?.title || '');
-    let content = $state(note?.content || '');
-    let directory = $state(note?.directory || '');
+    let title = $state('');
+    let content = $state('');
+    let directory = $state('');
     let loading = $state(false);
+
+    $effect(() => {
+        title = note?.title || '';
+        content = note?.content || '';
+        directory = note?.directory || '';
+    });
 
     async function handleSave() {
         if (!title || !content) return;
@@ -161,5 +167,5 @@
         line-height: 1.6;
     }
 
-    .icon-gap { margin-right: 8px; }
+    :global(.icon-gap) { margin-right: 8px; }
 </style>

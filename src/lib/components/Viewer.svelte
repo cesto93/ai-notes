@@ -336,5 +336,5 @@
         to { transform: rotate(360deg); }
     }
 
-    .icon-gap { margin-right: 8px; }
+    :global(.icon-gap) { margin-right: 8px; }
 </style>

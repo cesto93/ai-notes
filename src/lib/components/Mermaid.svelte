@@ -51,7 +51,7 @@
         height: auto;
     }
 
-    .error {
+    :global(.error) {
         color: #ef4444;
         font-family: monospace;
     }
