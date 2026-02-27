@@ -145,6 +145,91 @@ pub fn list_notes() -> Result<NoteListResponse, String> {
     Ok(NoteListResponse { files, directories })
 }
 
+pub fn refresh_notes() -> Result<(), String> {
+    let _lock = MU.lock().map_err(|e| e.to_string())?;
+    
+    let notes_dir = get_notes_dir();
+    if !notes_dir.exists() {
+        fs::create_dir_all(&notes_dir).map_err(|e| e.to_string())?;
+    }
+
+    let mut fs_notes = Vec::new();
+
+    // Helper to scan directory
+    fn scan_dir(dir: &Path, base_notes_dir: &Path, fs_notes: &mut Vec<NoteMetadata>) -> Result<(), String> {
+        let entries = fs::read_dir(dir).map_err(|e| e.to_string())?;
+        for entry in entries {
+            let entry = entry.map_err(|e| e.to_string())?;
+            let path = entry.path();
+            let name = entry.file_name().into_string().map_err(|_| "Invalid filename")?;
+
+            if path.is_dir() {
+                if name.starts_with('.') {
+                    continue;
+                }
+                scan_dir(&path, base_notes_dir, fs_notes)?;
+            } else if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("md") {
+                let rel_path = path.strip_prefix(base_notes_dir).map_err(|e| e.to_string())?;
+                let directory = rel_path.parent()
+                    .and_then(|p| p.to_str())
+                    .unwrap_or("")
+                    .to_string();
+                
+                let filename = rel_path.file_name()
+                    .and_then(|s| s.to_str())
+                    .ok_or("Invalid filename")?;
+                
+                let title = filename.strip_suffix(".md").unwrap_or(filename).replace("_", " ");
+                
+                fs_notes.push(NoteMetadata {
+                    argument: title,
+                    directory,
+                });
+            }
+        }
+        Ok(())
+    }
+
+    scan_dir(&notes_dir, &notes_dir, &mut fs_notes)?;
+
+    let (db_notes, settings) = read_db();
+    
+    // We want to keep DB entries if they still exist on disk, 
+    // and add new ones from disk that aren't in the DB.
+    // However, the DB might have specific casing for "argument" (title) that the filename (underscored) doesn't preserve perfectly
+    // but the current implementation uses title.replace(" ", "_") + ".md" for filename.
+    
+    let mut final_notes = Vec::new();
+    let mut handled_fs_indices = std::collections::HashSet::new();
+
+    // 1. Keep existing DB notes if they exist on disk
+    for db_note in db_notes {
+        let filename = db_note.argument.replace(" ", "_") + ".md";
+        let path = notes_dir.join(&db_note.directory).join(filename);
+        
+        if path.exists() {
+            final_notes.push(db_note.clone());
+            
+            // Mark this FS note as handled
+            if let Some(pos) = fs_notes.iter().position(|f| f.argument == db_note.argument && f.directory == db_note.directory) {
+                handled_fs_indices.insert(pos);
+            } else if let Some(pos) = fs_notes.iter().position(|f| f.argument.to_lowercase() == db_note.argument.to_lowercase() && f.directory == db_note.directory) {
+                // Handle case where casing might have changed but it's the same file
+                handled_fs_indices.insert(pos);
+            }
+        }
+    }
+
+    // 2. Add new FS notes that weren't in the DB
+    for (i, fs_note) in fs_notes.into_iter().enumerate() {
+        if !handled_fs_indices.contains(&i) {
+            final_notes.push(fs_note);
+        }
+    }
+
+    write_db(final_notes, settings)
+}
+
 pub fn get_note(path_str: &str) -> Result<Note, String> {
     let full_path = get_notes_dir().join(path_str);
     if !full_path.exists() {

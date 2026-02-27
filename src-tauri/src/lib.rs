@@ -5,6 +5,11 @@ mod ai;
 use models::{Note, UpdateNoteRequest, MoveNoteRequest, NoteListResponse, Settings};
 
 #[tauri::command]
+fn refresh_notes() -> Result<(), String> {
+    storage::refresh_notes()
+}
+
+#[tauri::command]
 fn list_notes() -> Result<NoteListResponse, String> {
     storage::list_notes()
 }
@@ -103,7 +108,10 @@ pub fn run() {
         save_settings,
         summarize,
         paraphrase,
-        mindmap
+        summarize,
+        paraphrase,
+        mindmap,
+        refresh_notes
     ])
     .setup(|_app| {
       if cfg!(debug_assertions) {

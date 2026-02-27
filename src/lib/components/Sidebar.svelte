@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { FileText, Folder, Plus, ChevronRight, ChevronDown, List as ListIcon, Trash2, Settings as SettingsIcon, Edit3 } from 'lucide-svelte';
-    import { createDirectory, deleteNote, deleteDirectory, moveNote, renameNote, renameDirectory } from '$lib/api';
+    import { FileText, Folder, Plus, ChevronRight, ChevronDown, List as ListIcon, Trash2, Settings as SettingsIcon, Edit3, RotateCw } from 'lucide-svelte';
+    import { createDirectory, deleteNote, deleteDirectory, moveNote, renameNote, renameDirectory, refreshNotes } from '$lib/api';
     import type { NoteListResponse } from '$lib/types';
 
     let { 
@@ -32,6 +32,11 @@
         await createDirectory(newDirName);
         newDirName = '';
         showDirInput = false;
+        onRefresh();
+    }
+
+    async function handleRefresh() {
+        await refreshNotes();
         onRefresh();
     }
 
@@ -155,6 +160,9 @@
         <div class="header-actions">
             <button class="icon-btn settings-btn" onclick={() => onToggleSettings()} title="Settings">
                 <SettingsIcon size={18} />
+            </button>
+            <button class="icon-btn refresh-btn" onclick={handleRefresh} title="Refresh Notes">
+                <RotateCw size={18} />
             </button>
             <button class="icon-btn" onclick={() => onNewNote()} title="New Note">
                 <Plus size={20} />
@@ -321,6 +329,17 @@
     }
 
     .settings-btn:hover {
+        background: var(--glass) !important;
+        color: white !important;
+    }
+
+    .refresh-btn {
+        background: var(--bg-secondary) !important;
+        color: var(--text-dim) !important;
+        box-shadow: none !important;
+    }
+
+    .refresh-btn:hover {
         background: var(--glass) !important;
         color: white !important;
     }

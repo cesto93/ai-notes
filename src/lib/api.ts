@@ -75,3 +75,8 @@ export async function updateSettings(settings: { provider: string; model: string
 export async function mindmap(text: string): Promise<string> {
     return await invoke('mindmap', { text });
 }
+
+export async function refreshNotes(): Promise<void> {
+    return await invoke('refresh_notes');
+}
+
