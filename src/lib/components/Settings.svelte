@@ -2,7 +2,7 @@
     import { onMount } from 'svelte';
     import { fetchSettings, updateSettings } from '$lib/api';
 
-    let { onClose } = $props();
+    let { onClose }: { onClose: () => void } = $props();
 
     let settings = $state({ provider: 'google', model: 'gemini-2.0-flash' });
     let saving = $state(false);
@@ -13,7 +13,7 @@
         { id: 'groq', name: 'Groq' }
     ];
 
-    const models = {
+    const models: Record<string, string[]> = {
         google: ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3-flash-preview', 'gemini-3.1-pro-preview'],
         ollama: ['ministral', 'granite4:tiny-h', 'olmo-3:7b-instruct'],
         groq: ['openai/gpt-oss-120b', 'openai/gpt-oss-20b']

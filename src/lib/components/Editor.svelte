@@ -40,7 +40,12 @@
 <div class="editor fade-in">
     <header class="editor-header">
         <div class="title-section">
-            <h1>{isNew ? 'New Note' : 'Edit Note'}</h1>
+            <input 
+                type="text" 
+                class="title-input" 
+                bind:value={title} 
+                placeholder="Note Title..."
+            />
             {#if directory}
                 <span class="directory-tag">{directory}</span>
             {/if}
@@ -58,13 +63,7 @@
     </header>
 
     <div class="form">
-        <div class="input-group">
-            <label for="title">Title</label>
-            <input id="title" bind:value={title} placeholder="Enter title..." />
-        </div>
-        
         <div class="input-group full-height">
-            <label for="content">Content</label>
             <textarea id="content" bind:value={content} placeholder="Write your thoughts..."></textarea>
         </div>
     </div>
@@ -92,6 +91,24 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
+        flex: 1;
+    }
+
+    .title-input {
+        font-size: 2.5rem;
+        font-weight: 700;
+        background: transparent;
+        border: none;
+        color: white;
+        outline: none;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+    }
+
+    .title-input::placeholder {
+        color: var(--text-dim);
+        opacity: 0.5;
     }
 
     .directory-tag {
@@ -144,14 +161,6 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
-    }
-
-    label {
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        color: var(--text-dim);
-        font-weight: 600;
-        letter-spacing: 0.05em;
     }
 
     .full-height {

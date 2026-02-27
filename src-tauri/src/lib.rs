@@ -25,6 +25,11 @@ fn update_note(req: UpdateNoteRequest) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn rename_note(old_title: String, directory: String, new_title: String) -> Result<(), String> {
+    storage::rename_note(&old_title, &directory, &new_title)
+}
+
+#[tauri::command]
 fn move_note(req: MoveNoteRequest) -> Result<(), String> {
     storage::move_note(req)
 }
@@ -42,6 +47,11 @@ fn create_directory(name: String) -> Result<(), String> {
 #[tauri::command]
 fn delete_directory(name: String) -> Result<(), String> {
     storage::delete_directory(&name)
+}
+
+#[tauri::command]
+fn rename_directory(old_name: String, new_name: String) -> Result<(), String> {
+    storage::rename_directory(&old_name, &new_name)
 }
 
 #[tauri::command]
@@ -83,10 +93,12 @@ pub fn run() {
         get_note,
         save_note,
         update_note,
+        rename_note,
         move_note,
         delete_note,
         create_directory,
         delete_directory,
+        rename_directory,
         get_settings,
         save_settings,
         summarize,

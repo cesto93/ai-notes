@@ -207,6 +207,35 @@ pub fn update_note(req: UpdateNoteRequest) -> Result<(), String> {
     write_db(notes, settings)
 }
 
+pub fn rename_note(old_title: &str, directory: &str, new_title: &str) -> Result<(), String> {
+    let _lock = MU.lock().map_err(|e| e.to_string())?;
+
+    let old_filename = old_title.replace(" ", "_") + ".md";
+    let old_path = get_notes_dir().join(directory).join(&old_filename);
+
+    let new_filename = new_title.replace(" ", "_") + ".md";
+    let new_path = get_notes_dir().join(directory).join(&new_filename);
+
+    if !old_path.exists() {
+        return Err("Note not found".to_string());
+    }
+
+    if new_path.exists() {
+        return Err("Target note already exists".to_string());
+    }
+
+    fs::rename(old_path, new_path).map_err(|e| e.to_string())?;
+
+    let (mut notes, settings) = read_db();
+    for n in notes.iter_mut() {
+        if n.argument == old_title && n.directory == directory {
+            n.argument = new_title.to_string();
+            break;
+        }
+    }
+    write_db(notes, settings)
+}
+
 pub fn move_note(req: MoveNoteRequest) -> Result<(), String> {
     let _lock = MU.lock().map_err(|e| e.to_string())?;
 
@@ -273,6 +302,33 @@ pub fn delete_directory(directory: &str) -> Result<(), String> {
 
     let (mut notes, settings) = read_db();
     notes.retain(|n| n.directory != directory);
+    write_db(notes, settings)
+}
+
+pub fn rename_directory(old_name: &str, new_name: &str) -> Result<(), String> {
+    let _lock = MU.lock().map_err(|e| e.to_string())?;
+
+    let old_path = get_notes_dir().join(old_name);
+    let new_path = get_notes_dir().join(new_name);
+
+    if !old_path.exists() {
+        return Err("Directory not found".to_string());
+    }
+
+    if new_path.exists() {
+        return Err("Target directory already exists".to_string());
+    }
+
+    fs::rename(old_path, new_path).map_err(|e| e.to_string())?;
+
+    let (mut notes, settings) = read_db();
+    for n in notes.iter_mut() {
+        if n.directory == old_name {
+            n.directory = new_name.to_string();
+        } else if n.directory.starts_with(&format!("{}/", old_name)) {
+            n.directory = n.directory.replace(old_name, new_name);
+        }
+    }
     write_db(notes, settings)
 }
 

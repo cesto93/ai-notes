@@ -5,18 +5,19 @@
     import Viewer from '$lib/components/Viewer.svelte';
     import Settings from '$lib/components/Settings.svelte';
     import { fetchNotes, fetchNote } from '$lib/api';
+    import type { Note, NoteListResponse } from '$lib/types';
 
-    let notes = $state({ files: [], directories: {} });
-    let selectedNote = $state(null);
-    let viewMode = $state('empty'); // 'empty', 'viewer', 'editor', 'new'
-    let currentDir = $state(''); // For prefilling new note directory
+    let notes = $state<NoteListResponse>({ files: [], directories: {} });
+    let selectedNote = $state<Note | null>(null);
+    let viewMode = $state<'empty' | 'viewer' | 'editor' | 'new'>('empty');
+    let currentDir = $state(''); 
     let showSettings = $state(false);
 
     async function loadNotes() {
         notes = await fetchNotes();
     }
 
-    async function handleSelectNote(path) {
+    async function handleSelectNote(path: string) {
         const fullNote = await fetchNote(path);
         selectedNote = fullNote;
         viewMode = 'viewer';

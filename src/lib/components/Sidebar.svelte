@@ -1,8 +1,21 @@
 <script lang="ts">
-    import { FileText, Folder, Plus, ChevronRight, ChevronDown, List as ListIcon, Trash2, Settings } from 'lucide-svelte';
-    import { createDirectory, deleteNote, deleteDirectory, moveNote } from '$lib/api';
+    import { FileText, Folder, Plus, ChevronRight, ChevronDown, List as ListIcon, Trash2, Settings as SettingsIcon, Edit3 } from 'lucide-svelte';
+    import { createDirectory, deleteNote, deleteDirectory, moveNote, renameNote, renameDirectory } from '$lib/api';
+    import type { NoteListResponse } from '$lib/types';
 
-    let { notes, onSelectNote, onNewNote, onRefresh, onToggleSettings } = $props();
+    let { 
+        notes, 
+        onSelectNote, 
+        onNewNote, 
+        onRefresh, 
+        onToggleSettings 
+    }: {
+        notes: NoteListResponse,
+        onSelectNote: (path: string) => void,
+        onNewNote: (dir?: string) => void,
+        onRefresh: () => void,
+        onToggleSettings: () => void
+    } = $props();
     
     let newDirName = $state('');
     let showDirInput = $state(false);
@@ -84,16 +97,66 @@
     function handleDragLeave() {
         dragOverDir = null;
     }
+
+    let menu = $state<{ x: number, y: number, type: 'note' | 'dir', target: any } | null>(null);
+
+    function handleContextMenu(e: MouseEvent, type: 'note' | 'dir', target: any) {
+        e.preventDefault();
+        e.stopPropagation();
+        menu = { x: e.clientX, y: e.clientY, type, target };
+    }
+
+    async function handleRename() {
+        if (!menu) return;
+        const { type, target } = menu;
+        const oldName = type === 'dir' ? target : target.noteFile.replace('.md', '').replace(/_/g, ' ');
+        const newName = prompt(`Rename ${type === 'dir' ? 'directory' : 'note'}:`, oldName);
+        
+        if (newName && newName !== oldName) {
+            if (type === 'dir') {
+                await renameDirectory(target, newName);
+            } else {
+                const oldTitle = target.noteFile.replace('.md', '');
+                await renameNote(oldTitle, target.directory, newName);
+            }
+            onRefresh();
+        }
+        menu = null;
+    }
+
+    async function handleDeleteFromMenu() {
+        if (!menu) return;
+        const { type, target } = menu;
+        if (type === 'dir') {
+            if (confirm(`Are you sure you want to delete the directory "${target}" and all its contents?`)) {
+                await deleteDirectory(target);
+                onRefresh();
+            }
+        } else {
+            const title = target.noteFile.replace('.md', '');
+            const displayName = title.replace(/_/g, ' ');
+            if (confirm(`Are you sure you want to delete the note "${displayName}"?`)) {
+                await deleteNote(title, target.directory);
+                onRefresh();
+            }
+        }
+        menu = null;
+    }
 </script>
+
+<svelte:window 
+    onclick={() => menu = null} 
+    oncontextmenu={(e) => { if (menu) menu = null; }} 
+/>
 
 <aside class="sidebar glass-morphism">
     <div class="sidebar-header">
         <h2>AI Notes</h2>
         <div class="header-actions">
-            <button class="icon-btn settings-btn" onclick={onToggleSettings} title="Settings">
-                <Settings size={18} />
+            <button class="icon-btn settings-btn" onclick={() => onToggleSettings()} title="Settings">
+                <SettingsIcon size={18} />
             </button>
-            <button class="icon-btn" onclick={onNewNote} title="New Note">
+            <button class="icon-btn" onclick={() => onNewNote()} title="New Note">
                 <Plus size={20} />
             </button>
         </div>
@@ -130,6 +193,7 @@
                             ondragover={(e) => handleDragOver(e, dir)}
                             ondragleave={handleDragLeave}
                             ondrop={(e) => handleDrop(e, dir)}
+                            oncontextmenu={(e) => handleContextMenu(e, 'dir', dir)}
                         >
                             {#if expandedDirs.has(dir)}
                                 <ChevronDown size={16} />
@@ -158,6 +222,7 @@
                                         tabindex="0"
                                         draggable="true"
                                         ondragstart={(e) => handleDragStart(e, noteFile.replace('.md', ''), dir)}
+                                        oncontextmenu={(e) => handleContextMenu(e, 'note', { noteFile, directory: dir })}
                                     >
                                         <FileText size={14} class="icon-gap" />
                                         <span class="file-name">{noteFile.replace('.md', '').replace(/_/g, ' ')}</span>
@@ -194,6 +259,7 @@
                         tabindex="0"
                         draggable="true"
                         ondragstart={(e) => handleDragStart(e, noteFile.replace('.md', ''), "")}
+                        oncontextmenu={(e) => handleContextMenu(e, 'note', { noteFile, directory: "" })}
                     >
                         <FileText size={14} class="icon-gap" />
                         <span class="file-name">{noteFile.replace('.md', '').replace(/_/g, ' ')}</span>
@@ -205,7 +271,26 @@
             </div>
         </div>
     </div>
+
 </aside>
+
+{#if menu}
+    <div 
+        class="context-menu glass-morphism fade-in" 
+        style="top: {menu.y}px; left: {menu.x}px"
+        oncontextmenu|preventDefault|stopPropagation
+    >
+        <button class="menu-item" onclick={handleRename}>
+            <Edit3 size={16} class="icon-gap" />
+            Rename
+        </button>
+        <div class="menu-divider"></div>
+        <button class="menu-item delete" onclick={handleDeleteFromMenu}>
+            <Trash2 size={16} class="icon-gap" />
+            Delete
+        </button>
+    </div>
+{/if}
 
 <style>
     .sidebar {
@@ -240,6 +325,7 @@
         background: var(--glass) !important;
         color: white !important;
     }
+
 
     .icon-btn {
         background: var(--accent);
@@ -401,5 +487,47 @@
         background: var(--glass);
         outline: 2px dashed var(--accent);
         outline-offset: -2px;
+    }
+
+    .context-menu {
+        position: fixed;
+        z-index: 1000;
+        min-width: 160px;
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 6px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    .menu-item {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        color: var(--text-main);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .menu-item:hover {
+        background: var(--glass);
+    }
+
+    .menu-item.delete {
+        color: #ef4444;
+    }
+
+    .menu-item.delete:hover {
+        background: rgba(239, 68, 68, 0.1);
+    }
+
+    .menu-divider {
+        height: 1px;
+        background: var(--border);
+        margin: 4px;
     }
 </style>
