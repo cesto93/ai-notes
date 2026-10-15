@@ -18,6 +18,10 @@ Tauri 2 desktop app: Svelte 5 frontend (`src/`) + Rust backend (`src-tauri/src/`
 - Frontend↔backend bridge: `src/lib/api.ts` (`invoke(...)`) mirrors `#[tauri::command]` names in `lib.rs`. Update both together. `#lib` import alias maps to `./src/lib/*` (`package.json` `imports`).
 - Dev server: fixed port `1420` (`strictPort: true`) + HMR `1421`; Vite ignores `src-tauri/`. `lucide-svelte` is bundled via `ssr.noExternal` (extensionless-ESM workaround) — don't remove.
 
+## Frontend gotchas
+
+- After upgrading `@sveltejs/kit` (or other Svelte deps), delete stale generated output before dev: `rm -rf .svelte-kit build && bunx svelte-kit sync`. Old `generated/client/` trees reference removed runtime paths (e.g. `svelte-5/error.svelte`) and break `vite dev` with `Failed to resolve import` + `__sveltekit/environment` 404s. Always restart the dev server after re-installing deps.
+
 ## Backend gotchas
 
 - Storage paths are CWD-relative: `PathBuf::from("notes")` / `"notes_db.json"` resolve to `src-tauri/notes/`, `src-tauri/notes_db.json` under `tauri dev`. Root `.gitignore` entries for `notes`/`notes_db.json` are stale paths — real files live under `src-tauri/`.
