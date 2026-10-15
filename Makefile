@@ -10,4 +10,4 @@ test:
 bun-check:
 	bun run check
 cargo-check:
-	cargo check
+	cd src-tauri && cargo check

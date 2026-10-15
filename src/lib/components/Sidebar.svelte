@@ -336,6 +336,8 @@
 
 {#if menu}
     <div 
+        role="menu"
+        tabindex="-1"
         class="context-menu glass-morphism fade-in" 
         style="top: {menu.y}px; left: {menu.x}px"
         oncontextmenu={(e) => { e.preventDefault(); e.stopPropagation(); }}

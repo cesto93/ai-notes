@@ -108,8 +108,6 @@ pub fn run() {
         save_settings,
         summarize,
         paraphrase,
-        summarize,
-        paraphrase,
         mindmap,
         refresh_notes
     ])
