@@ -1,11 +1,11 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import Sidebar from '$lib/components/Sidebar.svelte';
-    import Editor from '$lib/components/Editor.svelte';
-    import Viewer from '$lib/components/Viewer.svelte';
-    import Settings from '$lib/components/Settings.svelte';
-    import { fetchNotes, fetchNote } from '$lib/api';
-    import type { Note, NoteListResponse } from '$lib/types';
+    import Sidebar from '#lib/components/Sidebar.svelte';
+    import Editor from '#lib/components/Editor.svelte';
+    import Viewer from '#lib/components/Viewer.svelte';
+    import Settings from '#lib/components/Settings.svelte';
+    import { fetchNotes, fetchNote } from '#lib/api.js';
+    import type { Note, NoteListResponse } from '#lib/types.js';
 
     let notes = $state<NoteListResponse>({ files: [], directories: {} });
     let selectedNote = $state<Note | null>(null);

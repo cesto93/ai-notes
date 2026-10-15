@@ -1,7 +1,7 @@
 <script lang="ts">
     import { FileText, Folder, Plus, ChevronRight, ChevronDown, List as ListIcon, Trash2, Settings as SettingsIcon, Edit3, RotateCw, FolderPlus } from 'lucide-svelte';
-    import { createDirectory, deleteNote, deleteDirectory, moveNote, renameNote, renameDirectory, refreshNotes } from '$lib/api';
-    import type { NoteListResponse } from '$lib/types';
+    import { createDirectory, deleteNote, deleteDirectory, moveNote, renameNote, renameDirectory, refreshNotes } from '#lib/api.js';
+    import type { NoteListResponse } from '#lib/types.js';
 
     let { 
         notes, 

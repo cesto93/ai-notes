@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Save, X } from 'lucide-svelte';
-    import { saveNote, updateNote } from '$lib/api';
+    import { saveNote, updateNote } from '#lib/api.js';
 
     let { note, isNew = false, onSave, onCancel } = $props();
     

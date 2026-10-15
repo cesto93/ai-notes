@@ -1,9 +1,8 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
     import mermaid from 'mermaid';
 
-    let { code } = $props();
-    let container: HTMLDivElement;
+    let { code }: { code: string } = $props();
+    let container: HTMLDivElement | undefined = $state();
 
     mermaid.initialize({
         startOnLoad: false,
@@ -11,12 +10,12 @@
         securityLevel: 'loose',
     });
 
-    async function renderChart() {
-        if (container && code) {
+    async function renderChart(chartCode: string) {
+        if (container && chartCode) {
             container.innerHTML = '';
-            const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+            const id = `mermaid-${Math.random().toString(36).substring(2, 11)}`;
             try {
-                const { svg } = await mermaid.render(id, code);
+                const { svg } = await mermaid.render(id, chartCode);
                 container.innerHTML = svg;
             } catch (e) {
                 console.error('Mermaid rendering failed:', e);
@@ -26,7 +25,11 @@
     }
 
     $effect(() => {
-        renderChart();
+        // Track `code` explicitly so the chart re-renders when it changes
+        const current = code as string;
+        if (current) {
+            void renderChart(current);
+        }
     });
 </script>
 

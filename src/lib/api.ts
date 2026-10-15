@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { Note, NoteListResponse, Settings } from './types';
+import type { Note, NoteListResponse, Settings } from './types.js';
 
 export async function fetchNotes(): Promise<NoteListResponse> {
     return await invoke('list_notes');

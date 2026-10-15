@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { fetchSettings, updateSettings } from '$lib/api';
+    import { fetchSettings, updateSettings } from '#lib/api.js';
 
     let { onClose }: { onClose: () => void } = $props();
 

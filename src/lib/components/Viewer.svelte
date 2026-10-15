@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Edit, Sparkles, Wand2, Network } from 'lucide-svelte';
-    import { summarize, paraphrase, mindmap } from '$lib/api';
+    import { summarize, paraphrase, mindmap } from '#lib/api.js';
     import { marked } from 'marked';
     import Mermaid from './Mermaid.svelte';
 
@@ -10,7 +10,9 @@
     let isMindmap = $state(false);
     let loading = $state(false);
 
-    let htmlContent = $derived(marked.parse(note.content || ''));
+    // marked.parse returns string | Promise<string>; we use the sync path (no async extensions)
+    let htmlContent = $derived(marked.parse(note.content || '') as string);
+    let aiHtmlContent = $derived(aiResult ? (marked.parse(aiResult) as string) : '');
 
     async function handleSummarize() {
         loading = true;
@@ -95,7 +97,7 @@
                     {#if isMindmap}
                         <Mermaid code={aiResult} />
                     {:else}
-                        {@html marked.parse(aiResult)}
+                        {@html aiHtmlContent}
                     {/if}
                 </div>
             </div>
