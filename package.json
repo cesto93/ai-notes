@@ -21,7 +21,7 @@
     "@tauri-apps/plugin-opener": "^2.7.2",
     "lucide-svelte": "^1.0.1",
     "marked": "^18.1.1",
-    "mermaid": "^12.2.0"
+    "pele": "^1.6.0"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^4.0.0",

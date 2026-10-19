@@ -16,6 +16,7 @@ Tauri 2 desktop app: Svelte 5 frontend (`src/`) + Rust backend (`src-tauri/src/`
 - SvelteKit 3: no `svelte.config.js` — SvelteKit/adapter-static configured inside `vite.config.js` (`fallback: "index.html"`, `frontendDist: ../build`).
 - Backend entry: `src-tauri/src/lib.rs` (`run()` + `invoke_handler!`); `main.rs` is trivial. Logic split: `storage.rs` (notes/dirs/settings) + `ai.rs` (Gemini calls) + `models.rs` (shared structs).
 - Frontend↔backend bridge: `src/lib/api.ts` (`invoke(...)`) mirrors `#[tauri::command]` names in `lib.rs`. Update both together. `#lib` import alias maps to `./src/lib/*` (`package.json` `imports`).
+- Diagrams are rendered by [pele](https://pele.run) (`src/lib/components/Mermaid.svelte`, kept name only as a legacy alias). Pele is synchronous — use `mount()` with an `onError` callback, not async `mermaid.render()`; theming is via `--pele-*` CSS variables, not `mermaid.initialize()`.
 - Dev server: fixed port `1420` (`strictPort: true`) + HMR `1421`; Vite ignores `src-tauri/`. `lucide-svelte` is bundled via `ssr.noExternal` (extensionless-ESM workaround) — don't remove.
 
 ## Frontend gotchas

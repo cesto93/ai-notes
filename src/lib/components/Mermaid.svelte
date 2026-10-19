@@ -1,42 +1,37 @@
 <script lang="ts">
-    import mermaid from 'mermaid';
+    import { mount, type Mounted } from 'pele';
 
     let { code }: { code: string } = $props();
     let container: HTMLDivElement | undefined = $state();
-
-    mermaid.initialize({
-        startOnLoad: false,
-        theme: 'dark',
-        securityLevel: 'loose',
-    });
-
-    async function renderChart(chartCode: string) {
-        if (container && chartCode) {
-            container.innerHTML = '';
-            const id = `mermaid-${Math.random().toString(36).substring(2, 11)}`;
-            try {
-                const { svg } = await mermaid.render(id, chartCode);
-                container.innerHTML = svg;
-            } catch (e) {
-                console.error('Mermaid rendering failed:', e);
-                container.innerHTML = '<pre class="error">Failed to render mindmap</pre>';
-            }
-        }
-    }
+    let error: string = $state('');
+    let mounted: Mounted | undefined = $state();
 
     $effect(() => {
         // Track `code` explicitly so the chart re-renders when it changes
         const current = code as string;
-        if (current) {
-            void renderChart(current);
+        if (container && current) {
+            error = '';
+            mounted = mount(container, current, {
+                onError: (e) => {
+                    console.error('Pele rendering failed:', e);
+                    error = e instanceof Error ? e.message : 'Failed to render diagram';
+                },
+            });
         }
+        return () => {
+            mounted?.destroy();
+            mounted = undefined;
+        };
     });
 </script>
 
-<div bind:this={container} class="mermaid-container"></div>
+<div bind:this={container} class="pele-container"></div>
+{#if error}
+    <pre class="error">{error}</pre>
+{/if}
 
 <style>
-    .mermaid-container {
+    .pele-container {
         width: 100%;
         min-height: 400px;
         display: flex;
@@ -47,15 +42,26 @@
         border-radius: 12px;
         overflow-x: auto;
         border: 1px solid var(--border);
+
+        --pele-bg: transparent;
+        --pele-fg: #e2e8f0;
+        --pele-muted: #94a3b8;
+        --pele-line: #cbd5e1;
+        --pele-surface: rgba(30, 41, 59, 0.8);
+        --pele-surface-alt: rgba(51, 65, 85, 0.8);
+        --pele-border: #475569;
+        --pele-accent: #60a5fa;
+        --pele-font: sans-serif;
     }
 
-    .mermaid-container :global(svg) {
+    .pele-container :global(svg) {
         max-width: 100%;
         height: auto;
     }
 
-    :global(.error) {
+    .error {
         color: #ef4444;
         font-family: monospace;
+        margin: 8px 0 0;
     }
 </style>

@@ -20,7 +20,7 @@ AI Notes is a modern, AI-enhanced **desktop** application designed to help you c
 - **AI Integration:** [Google Gemini API](https://ai.google.dev/)
 - **Package Manager:** [Bun](https://bun.sh/)
 - **Styling:** Tailwind CSS
-- **Diagrams:** [Mermaid.js](https://mermaid.js.org/)
+- **Diagrams:** [Pele](https://pele.run) ([obsidianmd/pele](https://github.com/obsidianmd/pele))
 
 ## 🚀 Getting Started
 
