@@ -39,9 +39,13 @@ AI Notes is a modern, AI-enhanced **desktop** application designed to help you c
    ```
 
 2. **Set up Environment Variables:**
-   Create a `.env` file in the root directory (or in `ai-notes-app-tauri/src-tauri/`) with your Google API key:
+   Create a `.env` file in the root directory (or in `ai-notes-app-tauri/src-tauri/`) with the API keys for the providers you want to use:
    ```env
+   # Provider: Google (Gemini) — default
    GOOGLE_API_KEY="your-google-api-key"
+   # Provider: OpenRouter (any model, vendor/model format)
+   OPENROUTER_API_KEY="your-openrouter-api-key"
+   # Provider: Ollama (local) — no API key needed, requires Ollama running on localhost:11434
    ```
 
 3. **Run the application:**

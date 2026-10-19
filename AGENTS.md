@@ -14,7 +14,7 @@ Tauri 2 desktop app: Svelte 5 frontend (`src/`) + Rust backend (`src-tauri/src/`
 
 - Frontend entry: `src/routes/+page.svelte`, `+layout.svelte`; SPA mode (`src/routes/+layout.ts` sets `ssr = false`, required for Tauri).
 - SvelteKit 3: no `svelte.config.js` — SvelteKit/adapter-static configured inside `vite.config.js` (`fallback: "index.html"`, `frontendDist: ../build`).
-- Backend entry: `src-tauri/src/lib.rs` (`run()` + `invoke_handler!`); `main.rs` is trivial. Logic split: `storage.rs` (notes/dirs/settings) + `ai.rs` (Gemini calls) + `models.rs` (shared structs).
+- `src-tauri/src/lib.rs` (`run()` + `invoke_handler!`); `main.rs` is trivial. Logic split: `storage.rs` (notes/dirs/settings) + `ai.rs` (LLM calls) + `models.rs` (shared structs).
 - Frontend↔backend bridge: `src/lib/api.ts` (`invoke(...)`) mirrors `#[tauri::command]` names in `lib.rs`. Update both together. `#lib` import alias maps to `./src/lib/*` (`package.json` `imports`).
 - Diagrams are rendered by [pele](https://pele.run) (`src/lib/components/Mermaid.svelte`, kept name only as a legacy alias). Pele is synchronous — use `mount()` with an `onError` callback, not async `mermaid.render()`; theming is via `--pele-*` CSS variables, not `mermaid.initialize()`.
 - Dev server: fixed port `1420` (`strictPort: true`) + HMR `1421`; Vite ignores `src-tauri/`. `lucide-svelte` is bundled via `ssr.noExternal` (extensionless-ESM workaround) — don't remove.
@@ -28,5 +28,5 @@ Tauri 2 desktop app: Svelte 5 frontend (`src/`) + Rust backend (`src-tauri/src/`
 - Storage paths are CWD-relative: `PathBuf::from("notes")` / `"notes_db.json"` resolve to `src-tauri/notes/`, `src-tauri/notes_db.json` under `tauri dev`. Root `.gitignore` entries for `notes`/`notes_db.json` are stale paths — real files live under `src-tauri/`.
 - Filename convention: `title.replace(" ", "_") + ".md"`; title recovery does reverse. `NoteMetadata.argument` is the title (legacy TinyDB name) — don't rename.
 - `notes_db.json` is TinyDB-shaped (`_default` + `settings` tables); `read_db` falls back to `provider: "google", model: "gemini-2.0-flash"` when missing.
-- `GOOGLE_API_KEY` loaded via `dotenvy::dotenv()` in `run()`; `.env` lives in `src-tauri/.env`. AI commands (`summarize`, `paraphrase`, `mindmap`) fail without it; unit tests cover only request-build/parse helpers, not the network call.
+- AI provider dispatch: `ai.rs::call_llm` matches on `settings.provider` (`summarize`/`paraphrase`/`mindmap` all route through it). `google` → Gemini API; `openrouter`, `ollama` → OpenAI-compatible chat completions (`openrouter` needs `OPENROUTER_API_KEY`; `ollama` hits `localhost:11434`, no key). Keys loaded via `dotenvy::dotenv()` in `run()`; `.env` lives in `src-tauri/.env`. Unit tests cover only request-build/parse helpers, not the network call.
 - README paths mentioning `ai-notes-app-tauri/` are stale — app root is the repo root.

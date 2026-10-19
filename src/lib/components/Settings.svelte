@@ -9,20 +9,26 @@
 
     const providers = [
         { id: 'google', name: 'Google (Gemini)' },
-        { id: 'ollama', name: 'Ollama (Local)' },
-        { id: 'groq', name: 'Groq' }
+        { id: 'openrouter', name: 'OpenRouter' },
+        { id: 'ollama', name: 'Ollama (Local)' }
     ];
 
     const models: Record<string, string[]> = {
         google: ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3-flash-preview', 'gemini-3.1-pro-preview'],
-        ollama: ['ministral', 'granite4:tiny-h', 'olmo-3:7b-instruct'],
-        groq: ['openai/gpt-oss-120b', 'openai/gpt-oss-20b']
+        openrouter: ['openai/gpt-4o-mini', 'anthropic/claude-3.5-sonnet', 'deepseek/deepseek-chat', 'meta-llama/llama-3.3-70b-instruct', 'google/gemini-2.0-flash-001'],
+        ollama: ['ministral', 'granite4:tiny-h', 'olmo-3:7b-instruct']
     };
 
     onMount(async () => {
         const current = await fetchSettings();
-        if (current.provider) settings.provider = current.provider;
-        if (current.model) settings.model = current.model;
+        // Reset to defaults if the saved provider is no longer supported
+        if (!current.provider || !models[current.provider]) {
+            settings.provider = 'google';
+            settings.model = models.google[0];
+            return;
+        }
+        settings.provider = current.provider;
+        settings.model = current.model || models[current.provider][0];
     });
 
     async function handleSave() {
@@ -54,16 +60,23 @@
 
         <div class="form-group">
             <label for="model">Model</label>
-            <select id="model" bind:value={settings.model}>
-                {#each models[settings.provider] as model}
-                    <option value={model}>{model}</option>
-                {/each}
-            </select>
-            {#if settings.provider === 'ollama'}
-                <p class="hint">Ensure Ollama is running locally and you have pulled the model.</p>
-            {/if}
-            {#if settings.provider === 'groq'}
-                <p class="hint">Ensure GROQ_API_KEY is set in your .env file.</p>
+            {#if settings.provider === 'openrouter'}
+                <input
+                    type="text"
+                    id="model"
+                    bind:value={settings.model}
+                    placeholder="vendor/model (e.g. openai/gpt-4o-mini)"
+                />
+                <p class="hint">Use any OpenRouter model ID (vendor/model format). Ensure OPENROUTER_API_KEY is set in your .env file.</p>
+            {:else}
+                <select id="model" bind:value={settings.model}>
+                    {#each models[settings.provider] as model}
+                        <option value={model}>{model}</option>
+                    {/each}
+                </select>
+                {#if settings.provider === 'ollama'}
+                    <p class="hint">Ensure Ollama is running locally and you have pulled the model.</p>
+                {/if}
             {/if}
         </div>
 
@@ -133,7 +146,8 @@
         color: var(--text-normal);
     }
 
-    select {
+    select,
+    input[type='text'] {
         width: 100%;
         padding: 10px 12px;
         background: var(--bg-input);
@@ -144,7 +158,8 @@
         outline: none;
     }
 
-    select:focus {
+    select:focus,
+    input[type='text']:focus {
         border-color: var(--accent);
     }
 
