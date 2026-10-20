@@ -65,11 +65,19 @@ export async function fetchSettings(): Promise<Settings> {
     return await invoke('get_settings');
 }
 
-export async function updateSettings(settings: { provider: string; model: string }) {
+export async function updateSettings(settings: Settings) {
     return await invoke('save_settings', {
         provider: settings.provider,
-        model: settings.model
+        model: settings.model,
+        notesDir: settings.notes_dir
     });
+}
+
+/** Opens a native folder picker. Returns null if the user cancels. */
+export async function pickDirectory(): Promise<string | null> {
+    const { open } = await import('@tauri-apps/plugin-dialog');
+    const selected = await open({ directory: true, multiple: false, title: 'Select notes folder' });
+    return typeof selected === 'string' ? selected : null;
 }
 
 export async function mindmap(text: string): Promise<string> {

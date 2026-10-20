@@ -4,7 +4,7 @@
     import Editor from '#lib/components/Editor.svelte';
     import Viewer from '#lib/components/Viewer.svelte';
     import Settings from '#lib/components/Settings.svelte';
-    import { fetchNotes, fetchNote } from '#lib/api.js';
+    import { fetchNotes, fetchNote, fetchSettings, updateSettings, pickDirectory } from '#lib/api.js';
     import type { Note, NoteListResponse } from '#lib/types.js';
 
     let notes = $state<NoteListResponse>({ files: [], directories: {} });
@@ -12,9 +12,19 @@
     let viewMode = $state<'empty' | 'viewer' | 'editor' | 'new'>('empty');
     let currentDir = $state(''); 
     let showSettings = $state(false);
+    let needsNotesDir = $state(false);
 
     async function loadNotes() {
         notes = await fetchNotes();
+    }
+
+    // No default location: if unset, block the app behind a folder picker.
+    async function chooseNotesDir() {
+        const dir = await pickDirectory();
+        if (!dir) return;
+        await updateSettings({ ...(await fetchSettings()), notes_dir: dir });
+        needsNotesDir = false;
+        await loadNotes();
     }
 
     async function handleSelectNote(path: string) {
@@ -40,7 +50,17 @@
     }
 
     onMount(() => {
-        loadNotes();
+        (async () => {
+            const settings = await fetchSettings();
+            if (!settings.notes_dir.trim()) {
+                needsNotesDir = true;
+                return;
+            }
+            await loadNotes();
+        })();
+        // Re-read the notes folder when it's changed in Settings
+        window.addEventListener('notes-dir-changed', loadNotes);
+        return () => window.removeEventListener('notes-dir-changed', loadNotes);
     });
 </script>
 
@@ -78,6 +98,17 @@
             {/key}
         {/if}
     </main>
+
+    {#if needsNotesDir}
+        <div class="notes-dir-overlay">
+            <div class="dir-prompt">
+                <div class="empty-icon">📁</div>
+                <h2>Choose your notes folder</h2>
+                <p>The app needs a folder to read and store your notes.</p>
+                <button class="primary-btn" onclick={chooseNotesDir}>Browse…</button>
+            </div>
+        </div>
+    {/if}
 </div>
 
 <style>
@@ -122,5 +153,37 @@
     .primary-btn:hover {
         background: var(--accent-hover);
         transform: translateY(-2px);
+    }
+
+    .notes-dir-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+    }
+
+    .dir-prompt {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 32px;
+        max-width: 420px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: var(--text-normal);
+        box-shadow: var(--shadow-xl);
+    }
+
+    .dir-prompt p {
+        color: var(--text-dim);
     }
 </style>

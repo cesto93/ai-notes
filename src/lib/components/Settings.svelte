@@ -1,10 +1,11 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { fetchSettings, updateSettings } from '#lib/api.js';
+    import { fetchSettings, updateSettings, pickDirectory } from '#lib/api.js';
 
     let { onClose }: { onClose: () => void } = $props();
 
-    let settings = $state({ provider: 'google', model: 'gemini-2.0-flash' });
+    let settings = $state({ provider: 'google', model: 'gemini-2.0-flash', notes_dir: '' });
+    let loadedNotesDir = $state('');
     let saving = $state(false);
 
     const providers = [
@@ -27,16 +28,27 @@
         if (!current.provider || !models[current.provider]) {
             settings.provider = 'google';
             settings.model = models.google[0];
-            return;
+        } else {
+            settings.provider = current.provider;
+            settings.model = current.model || models[current.provider][0];
         }
-        settings.provider = current.provider;
-        settings.model = current.model || models[current.provider][0];
+        settings.notes_dir = current.notes_dir || '';
+        loadedNotesDir = settings.notes_dir;
     });
+
+    async function browseNotesDir() {
+        const dir = await pickDirectory();
+        if (dir) settings.notes_dir = dir;
+    }
 
     async function handleSave() {
         saving = true;
         try {
+            const notesDirChanged = settings.notes_dir !== loadedNotesDir;
             await updateSettings(settings);
+            if (notesDirChanged) {
+                window.dispatchEvent(new CustomEvent('notes-dir-changed', { detail: settings.notes_dir }));
+            }
             onClose();
         } finally {
             saving = false;
@@ -47,9 +59,23 @@
 <div class="settings-modal fade-in">
     <div class="settings-content">
         <header>
-            <h2>LLM Configuration</h2>
+            <h2>Settings</h2>
             <button class="close-btn" onclick={onClose}>✕</button>
         </header>
+
+        <div class="form-group">
+            <label for="notes_dir">Notes Folder</label>
+            <div class="dir-row">
+                <input
+                    type="text"
+                    id="notes_dir"
+                    bind:value={settings.notes_dir}
+                    placeholder="Pick a folder…"
+                />
+                <button class="browse-btn" onclick={browseNotesDir}>Browse…</button>
+            </div>
+            <p class="hint">The app reads and writes notes directly in this folder. A folder is required.</p>
+        </div>
 
         <div class="form-group">
             <label for="provider">Provider</label>
@@ -88,7 +114,7 @@
 
         <div class="actions">
             <button class="cancel-btn" onclick={onClose}>Cancel</button>
-            <button class="save-btn" onclick={handleSave} disabled={saving}>
+            <button class="save-btn" onclick={handleSave} disabled={saving || !settings.notes_dir.trim()}>
                 {saving ? 'Saving...' : 'Save Configuration'}
             </button>
         </div>
@@ -180,6 +206,27 @@
         color: var(--text-dim);
         margin-top: 8px;
         font-style: italic;
+    }
+
+    .dir-row {
+        display: flex;
+        gap: 8px;
+    }
+
+    .browse-btn {
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        color: var(--text-normal);
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.2s;
+    }
+
+    .browse-btn:hover {
+        border-color: var(--accent);
     }
 
     .actions {

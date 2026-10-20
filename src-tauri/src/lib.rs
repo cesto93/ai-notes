@@ -65,8 +65,8 @@ fn get_settings() -> Result<Settings, String> {
 }
 
 #[tauri::command]
-fn save_settings(provider: String, model: String) -> Result<(), String> {
-    storage::save_settings(provider, model)
+fn save_settings(provider: String, model: String, notes_dir: String) -> Result<(), String> {
+    storage::save_settings(provider, model, notes_dir)
 }
 
 #[tauri::command]
@@ -93,6 +93,7 @@ pub fn run() {
   
   tauri::Builder::default()
     .plugin(tauri_plugin_log::Builder::default().build())
+    .plugin(tauri_plugin_dialog::init())
     .invoke_handler(tauri::generate_handler![
         list_notes,
         get_note,

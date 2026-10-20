@@ -27,6 +27,9 @@ pub struct MoveNoteRequest {
 pub struct Settings {
     pub provider: String,
     pub model: String,
+    /// Root folder where notes are stored. Must be set — no default fallback.
+    #[serde(default)]
+    pub notes_dir: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

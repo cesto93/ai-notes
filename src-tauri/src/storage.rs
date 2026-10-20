@@ -9,12 +9,44 @@ use once_cell::sync::Lazy;
 static MU: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 static TEST_DIR: Lazy<Mutex<Option<PathBuf>>> = Lazy::new(|| Mutex::new(None));
 
-fn get_notes_dir() -> PathBuf {
+fn default_settings() -> Settings {
+    Settings {
+        provider: "google".to_string(),
+        model: "gemini-2.0-flash".to_string(),
+        notes_dir: String::new(),
+    }
+}
+
+/// Expand a leading `~` to the user's home directory (Linux dev machine convention).
+fn expand_home(path: &str) -> String {
+    if path == "~" {
+        if let Ok(home) = std::env::var("HOME") {
+            return home;
+        }
+    } else if let Some(rest) = path.strip_prefix("~/") {
+        if let Ok(home) = std::env::var("HOME") {
+            return format!("{}/{}", home, rest);
+        }
+    }
+    path.to_string()
+}
+
+fn get_notes_dir() -> Result<PathBuf, String> {
+    // Tests always use their sandbox, regardless of settings.
     let test_dir = TEST_DIR.lock().unwrap();
     if let Some(ref path) = *test_dir {
-        path.join("notes")
+        return Ok(path.join("notes"));
+    }
+    drop(test_dir);
+
+    // Root folder configured in Settings. There is no default: if unset,
+    // the app asks the user to pick one instead of falling back silently.
+    let notes_dir = read_db().1.notes_dir;
+    let trimmed = notes_dir.trim();
+    if trimmed.is_empty() {
+        Err("Notes folder is not configured. Please choose one in the app.".to_string())
     } else {
-        PathBuf::from("notes")
+        Ok(PathBuf::from(expand_home(trimmed)))
     }
 }
 
@@ -38,7 +70,7 @@ struct TinyDBFile {
 pub fn read_db() -> (Vec<NoteMetadata>, Settings) {
     let db_path = get_db_file();
     if !db_path.exists() {
-        return (Vec::new(), Settings { provider: "google".to_string(), model: "gemini-2.0-flash".to_string() });
+        return (Vec::new(), default_settings());
     }
 
     let data = fs::read_to_string(db_path).unwrap_or_default();
@@ -50,10 +82,7 @@ pub fn read_db() -> (Vec<NoteMetadata>, Settings) {
     let notes: Vec<NoteMetadata> = raw.default.values().cloned().collect();
     // Sort to maintain some order if needed, but TinyDB keys are strings
     
-    let settings = raw.settings.get("1").cloned().unwrap_or(Settings {
-        provider: "google".to_string(),
-        model: "gemini-2.0-flash".to_string(),
-    });
+    let settings = raw.settings.get("1").cloned().unwrap_or_else(default_settings);
 
     (notes, settings)
 }
@@ -78,17 +107,18 @@ pub fn write_db(notes: Vec<NoteMetadata>, settings: Settings) -> Result<(), Stri
 }
 
 pub fn create_directory(directory: &str) -> Result<(), String> {
-    let path = get_notes_dir().join(directory);
+    let path = get_notes_dir()?.join(directory);
     fs::create_dir_all(path).map_err(|e| e.to_string())
 }
 
 pub fn save_note(content: &str, title: &str, directory: &str) -> Result<(), String> {
     let _lock = MU.lock().map_err(|e| e.to_string())?;
 
+    let notes_root = get_notes_dir()?;
     let target_dir = if directory.is_empty() {
-        get_notes_dir()
+        notes_root
     } else {
-        get_notes_dir().join(directory)
+        notes_root.join(directory)
     };
 
     fs::create_dir_all(&target_dir).map_err(|e| e.to_string())?;
@@ -106,7 +136,7 @@ pub fn save_note(content: &str, title: &str, directory: &str) -> Result<(), Stri
 }
 
 pub fn list_notes() -> Result<NoteListResponse, String> {
-    let notes_dir = get_notes_dir();
+    let notes_dir = get_notes_dir()?;
     if !notes_dir.exists() {
         return Ok(NoteListResponse {
             files: Vec::new(),
@@ -158,7 +188,7 @@ pub fn list_notes() -> Result<NoteListResponse, String> {
 pub fn refresh_notes() -> Result<(), String> {
     let _lock = MU.lock().map_err(|e| e.to_string())?;
     
-    let notes_dir = get_notes_dir();
+    let notes_dir = get_notes_dir()?;
     if !notes_dir.exists() {
         fs::create_dir_all(&notes_dir).map_err(|e| e.to_string())?;
     }
@@ -241,7 +271,7 @@ pub fn refresh_notes() -> Result<(), String> {
 }
 
 pub fn get_note(path_str: &str) -> Result<Note, String> {
-    let full_path = get_notes_dir().join(path_str);
+    let full_path = get_notes_dir()?.join(path_str);
     if !full_path.exists() {
         return Err("Note not found".to_string());
     }
@@ -280,9 +310,10 @@ pub fn update_note(req: UpdateNoteRequest) -> Result<(), String> {
     let _lock = MU.lock().map_err(|e| e.to_string())?;
 
     let old_filename = req.old_title.replace(" ", "_") + ".md";
-    let old_path = get_notes_dir().join(&req.old_directory).join(&old_filename);
+    let notes_root = get_notes_dir()?;
+    let old_path = notes_root.join(&req.old_directory).join(&old_filename);
 
-    let new_target_dir = get_notes_dir().join(&req.new_directory);
+    let new_target_dir = notes_root.join(&req.new_directory);
     fs::create_dir_all(&new_target_dir).map_err(|e| e.to_string())?;
 
     let new_filename = req.new_title.replace(" ", "_") + ".md";
@@ -309,10 +340,11 @@ pub fn rename_note(old_title: &str, directory: &str, new_title: &str) -> Result<
     let _lock = MU.lock().map_err(|e| e.to_string())?;
 
     let old_filename = old_title.replace(" ", "_") + ".md";
-    let old_path = get_notes_dir().join(directory).join(&old_filename);
+    let notes_root = get_notes_dir()?;
+    let old_path = notes_root.join(directory).join(&old_filename);
 
     let new_filename = new_title.replace(" ", "_") + ".md";
-    let new_path = get_notes_dir().join(directory).join(&new_filename);
+    let new_path = notes_root.join(directory).join(&new_filename);
 
     if !old_path.exists() {
         return Err("Note not found".to_string());
@@ -357,9 +389,10 @@ pub fn move_note(req: MoveNoteRequest) -> Result<(), String> {
     write_db(notes, settings)?;
 
     let filename = format!("{}.md", filename_no_ext);
-    let old_path = get_notes_dir().join(&req.old_directory).join(&filename);
-    
-    let new_target_dir = get_notes_dir().join(&req.new_directory);
+    let notes_root = get_notes_dir()?;
+    let old_path = notes_root.join(&req.old_directory).join(&filename);
+
+    let new_target_dir = notes_root.join(&req.new_directory);
     fs::create_dir_all(&new_target_dir).map_err(|e| e.to_string())?;
     
     let new_path = new_target_dir.join(&filename);
@@ -376,7 +409,7 @@ pub fn delete_note(title: &str, directory: &str) -> Result<(), String> {
 
     let filename_no_ext = title.replace(" ", "_");
     let filename = format!("{}.md", filename_no_ext);
-    let path = get_notes_dir().join(directory).join(filename);
+    let path = get_notes_dir()?.join(directory).join(filename);
 
     if path.exists() {
         fs::remove_file(path).map_err(|e| e.to_string())?;
@@ -393,7 +426,7 @@ pub fn delete_note(title: &str, directory: &str) -> Result<(), String> {
 pub fn delete_directory(directory: &str) -> Result<(), String> {
     let _lock = MU.lock().map_err(|e| e.to_string())?;
 
-    let path = get_notes_dir().join(directory);
+    let path = get_notes_dir()?.join(directory);
     if path.exists() {
         fs::remove_dir_all(path).map_err(|e| e.to_string())?;
     }
@@ -406,8 +439,9 @@ pub fn delete_directory(directory: &str) -> Result<(), String> {
 pub fn rename_directory(old_name: &str, new_name: &str) -> Result<(), String> {
     let _lock = MU.lock().map_err(|e| e.to_string())?;
 
-    let old_path = get_notes_dir().join(old_name);
-    let new_path = get_notes_dir().join(new_name);
+    let notes_root = get_notes_dir()?;
+    let old_path = notes_root.join(old_name);
+    let new_path = notes_root.join(new_name);
 
     if !old_path.exists() {
         return Err("Directory not found".to_string());
@@ -435,10 +469,19 @@ pub fn get_settings() -> Result<Settings, String> {
     Ok(settings)
 }
 
-pub fn save_settings(provider: String, model: String) -> Result<(), String> {
+pub fn save_settings(provider: String, model: String, notes_dir: String) -> Result<(), String> {
+    let notes_dir = notes_dir.trim().to_string();
+    if notes_dir.is_empty() {
+        return Err("Notes folder is not configured. Please choose one in the app.".to_string());
+    }
+    // Reject nonexistent folders early so list/save don't silently write elsewhere.
+    let path = PathBuf::from(expand_home(&notes_dir));
+    if !path.is_dir() {
+        return Err(format!("Notes folder does not exist: {}", path.display()));
+    }
     let _lock = MU.lock().map_err(|e| e.to_string())?;
     let (notes, _) = read_db();
-    write_db(notes, Settings { provider, model })
+    write_db(notes, Settings { provider, model, notes_dir })
 }
 
 #[cfg(test)]
