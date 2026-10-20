@@ -17,22 +17,12 @@
         onToggleSettings: () => void
     } = $props();
     
-    let newDirName = $state('');
-    let showDirInput = $state(false);
     let expandedDirs = $state(new Set());
 
     function toggleDir(dir: string) {
         if (expandedDirs.has(dir)) expandedDirs.delete(dir);
         else expandedDirs.add(dir);
         expandedDirs = new Set(expandedDirs); // trigger reactivity
-    }
-
-    async function handleCreateDir() {
-        if (!newDirName.trim()) return;
-        await createDirectory(newDirName);
-        newDirName = '';
-        showDirInput = false;
-        onRefresh();
     }
 
     async function handleRefresh() {
@@ -103,9 +93,9 @@
         dragOverDir = null;
     }
 
-    let menu = $state<{ x: number, y: number, type: 'note' | 'dir', target: any } | null>(null);
+    let menu = $state<{ x: number, y: number, type: 'note' | 'dir' | 'root', target: any } | null>(null);
 
-    function handleContextMenu(e: MouseEvent, type: 'note' | 'dir', target: any) {
+    function handleContextMenu(e: MouseEvent, type: 'note' | 'dir' | 'root', target: any = null) {
         e.preventDefault();
         e.stopPropagation();
         menu = { x: e.clientX, y: e.clientY, type, target };
@@ -164,6 +154,15 @@
         menu = null;
     }
 
+    async function handleNewRootDir() {
+        menu = null;
+        const name = prompt('New directory name:');
+        if (name && name.trim()) {
+            await createDirectory(name.trim());
+            onRefresh();
+        }
+    }
+
     interface TreeNode {
         files: string[];
         children: Record<string, TreeNode>;
@@ -220,11 +219,6 @@
         
         {#if expandedDirs.has(node.fullPath)}
             <div class="dir-children fade-in">
-                <button class="file-item new-in-dir" onclick={() => onNewNote(node.fullPath)}>
-                    <Plus size={14} class="icon-gap" />
-                    <span>New Note</span>
-                </button>
-                
                 {#each Object.entries(node.children) as [childName, childNode]}
                     {@render directoryNode(childName, childNode, depth + 1)}
                 {/each}
@@ -267,30 +261,14 @@
             <button class="icon-btn refresh-btn" onclick={handleRefresh} title="Refresh Notes">
                 <RotateCw size={18} />
             </button>
-            <button class="icon-btn" onclick={() => onNewNote()} title="New Note">
-                <Plus size={20} />
-            </button>
         </div>
     </div>
 
-    <div class="sidebar-content">
+    <div class="sidebar-content" role="tree" aria-label="Notes" tabindex="-1" oncontextmenu={(e) => handleContextMenu(e, 'root')}>
         <div class="section">
             <div class="section-header">
                 <span class="section-title">Directories</span>
-                <button class="mini-btn" onclick={() => showDirInput = !showDirInput}>
-                    <Plus size={14} />
-                </button>
             </div>
-            
-            {#if showDirInput}
-                <div class="dir-input fade-in">
-                    <input 
-                        bind:value={newDirName} 
-                        placeholder="Name..." 
-                        onkeydown={(e) => e.key === 'Enter' && handleCreateDir()}
-                    />
-                </div>
-            {/if}
 
             <div class="dir-list">
                 {#each Object.entries(directoryTree.children) as [name, node]}
@@ -352,16 +330,26 @@
                 New Subdirectory
             </button>
             <div class="menu-divider"></div>
+        {:else if menu.type === 'root'}
+            <button class="menu-item" onclick={() => { onNewNote(''); menu = null; }}>
+                <Plus size={16} class="icon-gap" />
+                New Note
+            </button>
+            <button class="menu-item" onclick={handleNewRootDir}>
+                <FolderPlus size={16} class="icon-gap" />
+                New Directory
+            </button>
+        {:else}
+            <button class="menu-item" onclick={handleRename}>
+                <Edit3 size={16} class="icon-gap" />
+                Rename
+            </button>
+            <div class="menu-divider"></div>
+            <button class="menu-item delete" onclick={handleDeleteFromMenu}>
+                <Trash2 size={16} class="icon-gap" />
+                Delete
+            </button>
         {/if}
-        <button class="menu-item" onclick={handleRename}>
-            <Edit3 size={16} class="icon-gap" />
-            Rename
-        </button>
-        <div class="menu-divider"></div>
-        <button class="menu-item delete" onclick={handleDeleteFromMenu}>
-            <Trash2 size={16} class="icon-gap" />
-            Delete
-        </button>
     </div>
 {/if}
 
@@ -453,27 +441,6 @@
         font-weight: 600;
     }
 
-    .mini-btn {
-        color: var(--text-dim);
-        padding: 2px;
-        border-radius: 4px;
-    }
-
-    .mini-btn:hover {
-        background: var(--glass);
-        color: white;
-    }
-
-    .dir-input {
-        padding: 0 12px 8px;
-    }
-
-    .dir-input input {
-        width: 100%;
-        padding: 6px 12px;
-        font-size: 0.9rem;
-    }
-
     .dir-item {
         margin-bottom: 4px;
     }
@@ -527,11 +494,6 @@
     .file-item:hover {
         background: var(--glass);
         color: white;
-    }
-
-    .new-in-dir {
-        color: var(--accent);
-        font-style: italic;
     }
 
     .file-name {
