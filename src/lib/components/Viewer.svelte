@@ -104,7 +104,7 @@
         display: flex;
         flex-direction: column;
         height: 100%;
-        padding: 40px 4px 40px 48px;
+        padding: 40px 48px;
     }
 
     .viewer-header {
@@ -213,7 +213,8 @@
     }
 
     .note-body :global(pre) {
-        background: #1e293b;
+        background: #f6f8fa;
+        border: 1px solid var(--paper-border);
         padding: 16px;
         border-radius: 8px;
         overflow-x: auto;
@@ -223,7 +224,7 @@
     .note-body :global(pre code) {
         background: transparent;
         padding: 0;
-        color: #e2e8f0;
+        color: var(--paper-text);
     }
 
     .note-body :global(blockquote) {

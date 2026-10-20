@@ -75,7 +75,7 @@
         display: flex;
         flex-direction: column;
         height: 100%;
-        padding: 40px 4px 40px 48px;
+        padding: 40px 48px;
     }
 
     .editor-header {
