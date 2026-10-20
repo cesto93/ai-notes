@@ -2,7 +2,7 @@ mod models;
 mod storage;
 mod ai;
 
-use models::{Note, UpdateNoteRequest, MoveNoteRequest, NoteListResponse, Settings};
+use models::{Note, UpdateNoteRequest, MoveNoteRequest, NoteListResponse, Settings, SearchResult};
 
 #[tauri::command]
 fn refresh_notes() -> Result<(), String> {
@@ -17,6 +17,11 @@ fn list_notes() -> Result<NoteListResponse, String> {
 #[tauri::command]
 fn get_note(path: String) -> Result<Note, String> {
     storage::get_note(&path)
+}
+
+#[tauri::command]
+fn search_notes(query: String) -> Result<Vec<SearchResult>, String> {
+    storage::search_notes(&query)
 }
 
 #[tauri::command]
@@ -97,6 +102,7 @@ pub fn run() {
     .invoke_handler(tauri::generate_handler![
         list_notes,
         get_note,
+        search_notes,
         save_note,
         update_note,
         rename_note,

@@ -43,3 +43,18 @@ pub struct NoteListResponse {
     pub files: Vec<String>,
     pub directories: std::collections::HashMap<String, Vec<String>>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SearchResult {
+    /// Note path relative to the notes root (same format as `get_note`).
+    pub path: String,
+    pub title: String,
+    pub directory: String,
+    /// Tags matched by the query (empty when the note matched on title/text only).
+    pub tags: Vec<String>,
+    /// Short context around the first content match; first line otherwise.
+    pub snippet: String,
+    pub match_title: bool,
+    pub match_tags: bool,
+    pub match_content: bool,
+}

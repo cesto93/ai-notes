@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { Note, NoteListResponse, Settings } from './types.js';
+import type { Note, NoteListResponse, SearchResult, Settings } from './types.js';
 
 export async function fetchNotes(): Promise<NoteListResponse> {
     return await invoke('list_notes');
@@ -7,6 +7,10 @@ export async function fetchNotes(): Promise<NoteListResponse> {
 
 export async function fetchNote(path: string): Promise<Note> {
     return await invoke('get_note', { path });
+}
+
+export async function searchNotes(query: string): Promise<SearchResult[]> {
+    return await invoke('search_notes', { query });
 }
 
 export async function saveNote(note: { title: string; content: string; directory: string }) {
@@ -43,10 +47,6 @@ export async function createDirectory(name: string) {
 
 export async function summarize(text: string): Promise<string> {
     return await invoke('summarize', { text });
-}
-
-export async function paraphrase(text: string): Promise<string> {
-    return await invoke('paraphrase', { text });
 }
 
 export async function deleteNote(title: string, directory: string = "") {

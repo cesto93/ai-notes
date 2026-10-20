@@ -22,7 +22,9 @@ Tauri 2 desktop app: Svelte 5 frontend (`src/`) + Rust backend (`src-tauri/src/`
 ## Frontend gotchas
 
 - Note/directory creation and deletion are context-menu only (`Sidebar.svelte`): right-click a directory for "New Note"/"New Subdirectory", right-click empty sidebar space (`.sidebar-content`, `menu.type === 'root'`) for root-level "New Note"/"New Directory", and use each item's menu for Rename/Delete. There are intentionally no `+` buttons or hover trash icons in the sidebar.
+- Sidebar search (`search_notes` command, `Sidebar.svelte` search box, debounced 200ms): matches note title, inline `#hashtags` (there is no separate tag system — `storage.rs::extract_tags` parses `#tag` tokens and skips `# Heading` lines) and note content; results replace the tree while the query is active and rank title > tags > content.
 - After upgrading `@sveltejs/kit` (or other Svelte deps), delete stale generated output before dev: `rm -rf .svelte-kit build && bunx svelte-kit sync`. Old `generated/client/` trees reference removed runtime paths (e.g. `svelte-5/error.svelte`) and break `vite dev` with `Failed to resolve import` + `__sveltekit/environment` 404s. Always restart the dev server after re-installing deps.
+- Note layout: the content area (empty state, `Viewer`, `Editor`) sits on a light "paper" surface while the sidebar stays dark — theming tokens are the `--paper-*` set in `app.css`; keep component styles on those tokens. Notes have no centered `max-width` column — they use the full content width. The Paraphrase button and its `api.ts` wrapper were removed; the `paraphrase` Tauri command and `ai.rs` prompt still exist (unused by the frontend).
 
 ## Backend gotchas
 

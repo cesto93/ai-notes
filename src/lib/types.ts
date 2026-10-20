@@ -9,6 +9,20 @@ export interface NoteListResponse {
     directories: Record<string, string[]>;
 }
 
+export interface SearchResult {
+    /** Note path relative to the notes root, same format as get_note(). */
+    path: string;
+    title: string;
+    directory: string;
+    /** Tags matched by the query (empty when the note matched on title/text only). */
+    tags: string[];
+    /** Short context around the first content match; first plain line otherwise. */
+    snippet: string;
+    match_title: boolean;
+    match_tags: boolean;
+    match_content: boolean;
+}
+
 export interface Settings {
     provider: string;
     model: string;

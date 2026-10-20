@@ -1,4 +1,4 @@
-use crate::models::{Note, NoteMetadata, Settings, UpdateNoteRequest, MoveNoteRequest, NoteListResponse};
+use crate::models::{Note, NoteMetadata, Settings, UpdateNoteRequest, MoveNoteRequest, NoteListResponse, SearchResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -183,6 +183,165 @@ pub fn list_notes() -> Result<NoteListResponse, String> {
     walk(&notes_dir, &notes_dir, &mut files, &mut directories)?;
 
     Ok(NoteListResponse { files, directories })
+}
+
+/// Extract inline `#hashtags` from note content. Markdown headings (`# Title`,
+/// `## Sub`) are not tags — a tag requires a word character right after `#`
+/// and a whitespace/start-of-line before it.
+fn extract_tags(content: &str) -> Vec<String> {
+    let mut tags = std::collections::HashSet::new();
+    let bytes = content.as_bytes();
+    for (i, c) in content.char_indices() {
+        if c != '#' {
+            continue;
+        }
+        if i > 0 && !bytes[i - 1].is_ascii_whitespace() {
+            continue;
+        }
+        let next = match bytes.get(i + 1) {
+            Some(&b) => b,
+            None => continue,
+        };
+        if !(next.is_ascii_alphanumeric() || next == b'_') {
+            continue; // plain "## heading" or trailing "#"
+        }
+        let rest = &content[i + 1..];
+        let raw: String = rest
+            .chars()
+            .take_while(|c| !c.is_whitespace() && !matches!(*c, '#' | '/' | '.'))
+            .collect();
+        let tag = raw.trim_matches(|c: char| matches!(c, '-' | ',' | ':' | ';' | '(' | ')' | '[' | ']' | '{' | '}' | '!' | '?' | '"' | '\''));
+        if !tag.is_empty() {
+            tags.insert(tag.to_string());
+        }
+    }
+    tags.into_iter().collect()
+}
+
+/// Case-insensitive search across note titles, inline `#hashtags` and content.
+/// Results are ranked: title matches first, then tag matches, then content-only.
+pub fn search_notes(query: &str) -> Result<Vec<SearchResult>, String> {
+    let notes_dir = get_notes_dir()?;
+    let query_lower = query.trim().to_lowercase();
+    if query_lower.is_empty() || !notes_dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let (db_notes, _) = read_db();
+    let mut results: Vec<SearchResult> = Vec::new();
+
+    fn walk_search(
+        dir: &Path,
+        base: &Path,
+        query_lower: &str,
+        db_notes: &[NoteMetadata],
+        results: &mut Vec<SearchResult>,
+    ) -> Result<(), String> {
+        for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
+            let entry = entry.map_err(|e| e.to_string())?;
+            let path = entry.path();
+
+            if path.is_dir() {
+                if entry.file_name().to_string_lossy().starts_with('.') {
+                    continue;
+                }
+                walk_search(&path, base, query_lower, db_notes, results)?;
+            } else if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("md") {
+                let rel_path = match path.strip_prefix(base) {
+                    Ok(p) => p,
+                    Err(_) => continue,
+                };
+                let filename = match path.file_name().and_then(|s| s.to_str()) {
+                    Some(f) => f,
+                    None => continue,
+                };
+                let filename_no_ext = filename.strip_suffix(".md").unwrap_or(filename);
+                let display_title = filename_no_ext.replace('_', " ");
+                let directory = rel_path
+                    .parent()
+                    .and_then(|p| p.to_str())
+                    .unwrap_or("")
+                    .to_string();
+                // DB may hold the original casing for the title; fall back to filename.
+                let title = db_notes
+                    .iter()
+                    .find(|n| {
+                        n.argument.replace(" ", "_") == filename_no_ext
+                            && n.directory == directory
+                    })
+                    .map(|n| n.argument.clone())
+                    .unwrap_or_else(|| display_title.clone());
+
+                // Skip files that can't be read (invalid UTF-8, races) instead of
+                // failing the whole search.
+                let content = match fs::read_to_string(&path) {
+                    Ok(c) => c,
+                    Err(_) => continue,
+                };
+                let content_lower = content.to_lowercase();
+                let title_lower = title.to_lowercase();
+
+                let match_title = title_lower.contains(query_lower);
+                let tags = extract_tags(&content);
+                let matched_tags: Vec<String> = tags
+                    .iter()
+                    .filter(|t| t.to_lowercase().contains(query_lower))
+                    .cloned()
+                    .collect();
+                let match_tags = !matched_tags.is_empty();
+                let match_content = content_lower.contains(query_lower);
+
+                if !(match_title || match_tags || match_content) {
+                    continue;
+                }
+
+                // Snippet: the line containing the first content match, centered
+                // on the match if too long; otherwise the first plain line.
+                let snippet = if let Some(idx) = content_lower.find(&query_lower) {
+                    let line_start =
+                        content[..idx].rfind('\n').map(|p| p + 1).unwrap_or(0);
+                    let line_end = content[idx..]
+                        .find('\n')
+                        .map(|p| idx + p)
+                        .unwrap_or(content.len());
+                    let line = content[line_start..line_end].trim();
+                    if line.chars().count() > 160 {
+                        let match_chars = content[line_start..idx].chars().count();
+                        let start = match_chars.saturating_sub(60);
+                        line.chars().skip(start).take(160).collect::<String>().trim().to_string()
+                    } else {
+                        line.to_string()
+                    }
+                } else {
+                    content
+                        .lines()
+                        .map(str::trim)
+                        .find(|l| !l.is_empty() && !l.starts_with('#'))
+                        .map(|l| l.chars().take(160).collect())
+                        .unwrap_or_default()
+                };
+
+                results.push(SearchResult {
+                    path: rel_path.to_string_lossy().into_owned(),
+                    title,
+                    directory,
+                    snippet,
+                    tags: matched_tags,
+                    match_title,
+                    match_tags,
+                    match_content,
+                });
+            }
+        }
+        Ok(())
+    }
+
+    walk_search(&notes_dir, &notes_dir, &query_lower, &db_notes, &mut results)?;
+
+    // Rank: title matches first, then tag matches; stable keeps walk order.
+    results.sort_by_key(|r| std::cmp::Reverse((r.match_title, r.match_tags)));
+
+    Ok(results)
 }
 
 pub fn refresh_notes() -> Result<(), String> {
@@ -571,5 +730,61 @@ mod tests {
         let notes = list_notes().expect("List failed");
         assert!(notes.directories.contains_key("Informatica/AWS/S3"));
         assert!(notes.directories.get("Informatica/AWS/S3").unwrap().contains(&"Nested_Note.md".to_string()));
+    }
+
+    #[test]
+    fn test_extract_tags() {
+        let tags = extract_tags("#work some text #City_Tour ## Sub Heading  #trailing,");
+        assert!(tags.contains(&"work".to_string()));
+        assert!(tags.contains(&"City_Tour".to_string()));
+        assert!(tags.contains(&"trailing".to_string()));
+        assert!(!tags.contains(&"Sub".to_string()));
+    }
+
+    #[test]
+    fn test_search_notes() {
+        let _dir = setup_test();
+
+        save_note("#work plan\nImportant meeting details here", "Work Plan", "").expect("Save failed");
+        save_note("Talk about #rustlang compiler today", "Rust Tips", "drafts").expect("Save failed");
+        save_note("Completely unrelated body text", "Other Note", "").expect("Save failed");
+
+        // Empty query returns nothing
+        assert!(search_notes("").expect("Search failed").is_empty());
+        assert!(search_notes("  ").expect("Search failed").is_empty());
+
+        // Content match
+        let res = search_notes("meeting").expect("Search failed");
+        assert_eq!(res.len(), 1);
+        assert!(res[0].match_content);
+        assert!(!res[0].match_title && !res[0].match_tags);
+        assert_eq!(res[0].path, "Work_Plan.md");
+        assert_eq!(res[0].directory, "");
+        assert!(res[0].snippet.contains("meeting"));
+
+        // Tag match (the hashtag text is also part of the content, so
+        // match_content is true as well)
+        let res = search_notes("rustlang").expect("Search failed");
+        assert_eq!(res.len(), 1);
+        assert!(res[0].match_tags);
+        assert!(res[0].match_content);
+        assert_eq!(res[0].tags, vec!["rustlang"]);
+        assert_eq!(res[0].directory, "drafts");
+
+        // Case-insensitive title match
+        let res = search_notes("work plan").expect("Search failed");
+        assert_eq!(res.len(), 1);
+        assert!(res[0].match_title);
+
+        // Title matches rank above content matches
+        save_note("agenda content about meeting", "Meeting Agenda", "").expect("Save failed");
+        let res = search_notes("meeting").expect("Search failed");
+        assert!(res.len() >= 2);
+        assert_eq!(res[0].title, "Meeting Agenda");
+        assert!(res[0].match_title);
+        assert!(res[1].match_content);
+
+        // No match at all
+        assert!(search_notes("zzzznotfound").expect("Search failed").is_empty());
     }
 }

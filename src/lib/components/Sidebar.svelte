@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { Plus, ChevronRight, ChevronDown, Trash2, Settings as SettingsIcon, Edit3, RotateCw, FolderPlus } from 'lucide-svelte';
-    import { createDirectory, deleteNote, deleteDirectory, moveNote, renameNote, renameDirectory, refreshNotes } from '#lib/api.js';
-    import type { NoteListResponse } from '#lib/types.js';
+    import { Plus, ChevronRight, ChevronDown, Trash2, Settings as SettingsIcon, Edit3, RotateCw, FolderPlus, Search, X } from 'lucide-svelte';
+    import { createDirectory, deleteNote, deleteDirectory, moveNote, renameNote, renameDirectory, refreshNotes, searchNotes } from '#lib/api.js';
+    import type { NoteListResponse, SearchResult } from '#lib/types.js';
 
     let { 
         notes, 
@@ -172,6 +172,49 @@
     }
 
     let directoryTree = $derived(buildTree(notes.directories));
+
+    // --- search ---
+    let searchQuery = $state('');
+    let searchResults = $state<SearchResult[]>([]);
+    let searching = $state(false);
+    let searchActive = $derived(searchQuery.trim().length > 0);
+
+    let searchSeq = 0;
+    let searchTimer: ReturnType<typeof setTimeout> | undefined;
+
+    /** Debounced: wait for typing to settle before hitting the backend. */
+    function handleSearchInput() {
+        clearTimeout(searchTimer);
+        const q = searchQuery.trim();
+        if (!q) {
+            clearSearch();
+            return;
+        }
+        searchTimer = setTimeout(() => runSearch(q), 200);
+    }
+
+    async function runSearch(q: string) {
+        const seq = ++searchSeq;
+        searching = true;
+        try {
+            const results = await searchNotes(q);
+            // Ignore stale responses so an older query can't overwrite a newer one.
+            if (seq !== searchSeq) return;
+            searchResults = results;
+        } catch (err) {
+            if (seq === searchSeq) searchResults = [];
+        } finally {
+            if (seq === searchSeq) searching = false;
+        }
+    }
+
+    function clearSearch() {
+        clearTimeout(searchTimer);
+        searchSeq++; // invalidate any in-flight search
+        searchQuery = '';
+        searchResults = [];
+        searching = false;
+    }
 </script>
 
 {#snippet directoryNode(name: string, node: TreeNode, depth: number)}
@@ -238,39 +281,90 @@
         </div>
     </div>
 
-    <div class="sidebar-content" role="tree" aria-label="Notes" tabindex="-1" oncontextmenu={(e) => handleContextMenu(e, 'root')}>
-        <div class="dir-list">
-            {#each Object.entries(directoryTree.children) as [name, node]}
-                {@render directoryNode(name, node, 0)}
-            {/each}
-        </div>
+    <div class="search-box">
+        <Search size={16} />
+        <input
+            type="text"
+            placeholder="Search notes…"
+            bind:value={searchQuery}
+            oninput={handleSearchInput}
+            aria-label="Search notes"
+        />
+        {#if searchQuery}
+            <button class="search-clear" onclick={clearSearch} title="Clear search">
+                <X size={14} />
+            </button>
+        {/if}
+    </div>
 
-        {#if notes.files.length > 0}
-            <div class="root-files-section">
-                <div 
-                    class="file-list {dragOverDir === '' ? 'drag-over' : ''}"
-                    role="region"
-                    aria-label="Notes in root directory"
-                    ondragover={(e) => handleDragOver(e, "")}
-                    ondragleave={handleDragLeave}
-                    ondrop={(e) => handleDrop(e, "")}
-                >
-                    {#each notes.files as noteFile}
-                        <div 
-                            class="file-item" 
-                            onclick={() => onSelectNote(noteFile)} 
-                            onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectNote(noteFile)}
-                            role="button" 
+    <div class="sidebar-content" role="tree" aria-label="Notes" tabindex="-1" oncontextmenu={(e) => handleContextMenu(e, 'root')}>
+        {#if searchActive}
+            <div class="search-results" role="list" aria-label="Search results">
+                {#if searchResults.length === 0}
+                    <div class="search-empty">
+                        {searching ? 'Searching…' : `No matching notes`}
+                    </div>
+                {:else}
+                    {#each searchResults as result (result.path)}
+                        <div
+                            class="search-result"
+                            role="button"
                             tabindex="0"
-                            draggable="true"
-                            ondragstart={(e) => handleDragStart(e, noteFile.replace('.md', ''), "")}
-                            oncontextmenu={(e) => handleContextMenu(e, 'note', { noteFile, directory: "" })}
+                            onclick={() => onSelectNote(result.path)}
+                            onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectNote(result.path)}
                         >
-                            <span class="file-name">{noteFile.replace('.md', '').replace(/_/g, ' ')}</span>
+                            <div class="result-title">{result.title}</div>
+                            {#if result.directory}
+                                <div class="result-dir">{result.directory}</div>
+                            {/if}
+                            {#if result.tags.length > 0}
+                                <div class="result-tags">
+                                    {#each result.tags as tag}
+                                        <span class="tag-pill">#{tag}</span>
+                                    {/each}
+                                </div>
+                            {/if}
+                            {#if result.match_content && result.snippet}
+                                <div class="result-snippet">{result.snippet}</div>
+                            {/if}
                         </div>
                     {/each}
-                </div>
+                {/if}
             </div>
+        {:else}
+            <div class="dir-list">
+                {#each Object.entries(directoryTree.children) as [name, node]}
+                    {@render directoryNode(name, node, 0)}
+                {/each}
+            </div>
+
+            {#if notes.files.length > 0}
+                <div class="root-files-section">
+                    <div 
+                        class="file-list {dragOverDir === '' ? 'drag-over' : ''}"
+                        role="region"
+                        aria-label="Notes in root directory"
+                        ondragover={(e) => handleDragOver(e, "")}
+                        ondragleave={handleDragLeave}
+                        ondrop={(e) => handleDrop(e, "")}
+                    >
+                        {#each notes.files as noteFile}
+                            <div 
+                                class="file-item" 
+                                onclick={() => onSelectNote(noteFile)} 
+                                onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectNote(noteFile)}
+                                role="button" 
+                                tabindex="0"
+                                draggable="true"
+                                ondragstart={(e) => handleDragStart(e, noteFile.replace('.md', ''), "")}
+                                oncontextmenu={(e) => handleContextMenu(e, 'note', { noteFile, directory: "" })}
+                            >
+                                <span class="file-name">{noteFile.replace('.md', '').replace(/_/g, ' ')}</span>
+                            </div>
+                        {/each}
+                    </div>
+                </div>
+            {/if}
         {/if}
     </div>
 
@@ -494,5 +588,123 @@
         height: 1px;
         background: var(--border);
         margin: 4px;
+    }
+
+    .search-box {
+        margin: 0 24px 12px;
+        display: flex;
+        align-items: center;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0 8px;
+        transition: all 0.2s;
+    }
+
+    .search-box:focus-within {
+        border-color: var(--accent);
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    .search-box :global(svg) {
+        color: var(--text-dim);
+        flex-shrink: 0;
+    }
+
+    .search-box input {
+        flex: 1;
+        min-width: 0;
+        background: transparent;
+        border: none;
+        padding: 8px;
+        font-size: 0.9rem;
+        color: var(--text-main);
+    }
+
+    .search-box input:focus {
+        border: none;
+        background: transparent;
+    }
+
+    .search-clear {
+        display: flex;
+        align-items: center;
+        padding: 4px;
+        border-radius: 6px;
+        color: var(--text-dim);
+        flex-shrink: 0;
+    }
+
+    .search-clear:hover {
+        color: white;
+        background: var(--glass);
+    }
+
+    .search-results {
+        padding: 0 4px;
+    }
+
+    .search-empty {
+        padding: 16px 12px;
+        color: var(--text-dim);
+        font-size: 0.9rem;
+        text-align: center;
+    }
+
+    .search-result {
+        padding: 10px 12px;
+        border-radius: 8px;
+        margin-top: 4px;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .search-result:hover {
+        background: var(--glass);
+    }
+
+    .result-title {
+        color: var(--text-main);
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .result-dir {
+        color: var(--text-dim);
+        font-size: 0.75rem;
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .result-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+    }
+
+    .tag-pill {
+        padding: 1px 6px;
+        border-radius: 6px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        color: var(--text-dim);
+        font-size: 0.7rem;
+    }
+
+    .result-snippet {
+        margin-top: 4px;
+        color: var(--text-dim);
+        font-size: 0.8rem;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
     }
 </style>
