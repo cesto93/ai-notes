@@ -169,6 +169,12 @@
         border-color: var(--accent);
     }
 
+    /* Native dropdowns inherit the OS palette; force readable colors */
+    select option {
+        background: #1a1a1a;
+        color: var(--text-bright);
+    }
+
     .hint {
         font-size: 0.85rem;
         color: var(--text-dim);

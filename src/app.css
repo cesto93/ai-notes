@@ -1,9 +1,16 @@
 :root {
+  color-scheme: dark;
   --bg-color: #030303;
   --sidebar-bg: rgba(20, 20, 20, 0.8);
   --card-bg: rgba(30, 30, 30, 0.4);
+  --bg-card: rgba(20, 20, 20, 0.95);
+  --bg-input: rgba(255, 255, 255, 0.06);
+  --bg-secondary: rgba(255, 255, 255, 0.08);
   --text-main: #e0e0e0;
+  --text-normal: #e0e0e0;
   --text-dim: #a0a0a0;
+  --text-bright: #ffffff;
+  --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.6);
   --accent: #3b82f6;
   --accent-hover: #2563eb;
   --border: rgba(255, 255, 255, 0.1);
