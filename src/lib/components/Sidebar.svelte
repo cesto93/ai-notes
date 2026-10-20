@@ -30,24 +30,6 @@
         onRefresh();
     }
 
-    async function handleDeleteNote(e: MouseEvent, noteFile: string, directory: string = "") {
-        e.stopPropagation();
-        const title = noteFile.replace('.md', '');
-        const displayName = title.replace(/_/g, ' ');
-        if (confirm(`Are you sure you want to delete the note "${displayName}"?`)) {
-            await deleteNote(title, directory);
-            onRefresh();
-        }
-    }
-
-    async function handleDeleteDir(e: MouseEvent, dir: string) {
-        e.stopPropagation();
-        if (confirm(`Are you sure you want to delete the directory "${dir}" and all its contents?`)) {
-            await deleteDirectory(dir);
-            onRefresh();
-        }
-    }
-
     let draggedNote = $state<{ title: string, directory: string } | null>(null);
     let dragOverDir = $state<string | null>(null);
 
@@ -212,9 +194,6 @@
             {/if}
             <Folder size={16} class="icon-gap" />
             <span class="dir-name">{name}</span>
-            <button class="delete-btn" onclick={(e) => handleDeleteDir(e, node.fullPath)} title="Delete Directory">
-                <Trash2 size={14} />
-            </button>
         </div>
         
         {#if expandedDirs.has(node.fullPath)}
@@ -236,9 +215,6 @@
                     >
                         <FileText size={14} class="icon-gap" />
                         <span class="file-name">{noteFile.replace('.md', '').replace(/_/g, ' ')}</span>
-                        <button class="delete-btn mini" onclick={(e) => handleDeleteNote(e, noteFile, node.fullPath)} title="Delete Note">
-                            <Trash2 size={12} />
-                        </button>
                     </div>
                 {/each}
             </div>
@@ -300,9 +276,6 @@
                         >
                             <FileText size={14} class="icon-gap" />
                             <span class="file-name">{noteFile.replace('.md', '').replace(/_/g, ' ')}</span>
-                            <button class="delete-btn mini" onclick={(e) => handleDeleteNote(e, noteFile)} title="Delete Note">
-                                <Trash2 size={12} />
-                            </button>
                         </div>
                     {/each}
                 </div>
@@ -501,31 +474,6 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-    }
-
-    .delete-btn {
-        opacity: 0;
-        color: var(--text-dim);
-        padding: 4px;
-        border-radius: 4px;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .delete-btn:hover {
-        background: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
-    }
-
-    .dir-toggle:hover .delete-btn,
-    .file-item:hover .delete-btn {
-        opacity: 1;
-    }
-
-    .delete-btn.mini {
-        padding: 2px;
     }
 
     .dir-toggle.drag-over,
