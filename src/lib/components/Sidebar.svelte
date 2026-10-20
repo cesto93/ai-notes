@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { FileText, Folder, Plus, ChevronRight, ChevronDown, List as ListIcon, Trash2, Settings as SettingsIcon, Edit3, RotateCw, FolderPlus } from 'lucide-svelte';
+    import { Plus, ChevronRight, ChevronDown, Trash2, Settings as SettingsIcon, Edit3, RotateCw, FolderPlus } from 'lucide-svelte';
     import { createDirectory, deleteNote, deleteDirectory, moveNote, renameNote, renameDirectory, refreshNotes } from '#lib/api.js';
     import type { NoteListResponse } from '#lib/types.js';
 
@@ -192,7 +192,6 @@
             {:else}
                 <ChevronRight size={16} />
             {/if}
-            <Folder size={16} class="icon-gap" />
             <span class="dir-name">{name}</span>
         </div>
         
@@ -213,7 +212,6 @@
                         ondragstart={(e) => handleDragStart(e, noteFile.replace('.md', ''), node.fullPath)}
                         oncontextmenu={(e) => handleContextMenu(e, 'note', { noteFile, directory: node.fullPath })}
                     >
-                        <FileText size={14} class="icon-gap" />
                         <span class="file-name">{noteFile.replace('.md', '').replace(/_/g, ' ')}</span>
                     </div>
                 {/each}
@@ -241,16 +239,10 @@
     </div>
 
     <div class="sidebar-content" role="tree" aria-label="Notes" tabindex="-1" oncontextmenu={(e) => handleContextMenu(e, 'root')}>
-        <div class="section">
-            <div class="section-header">
-                <span class="section-title">Directories</span>
-            </div>
-
-            <div class="dir-list">
-                {#each Object.entries(directoryTree.children) as [name, node]}
-                    {@render directoryNode(name, node, 0)}
-                {/each}
-            </div>
+        <div class="dir-list">
+            {#each Object.entries(directoryTree.children) as [name, node]}
+                {@render directoryNode(name, node, 0)}
+            {/each}
         </div>
 
         {#if notes.files.length > 0}
@@ -274,7 +266,6 @@
                             ondragstart={(e) => handleDragStart(e, noteFile.replace('.md', ''), "")}
                             oncontextmenu={(e) => handleContextMenu(e, 'note', { noteFile, directory: "" })}
                         >
-                            <FileText size={14} class="icon-gap" />
                             <span class="file-name">{noteFile.replace('.md', '').replace(/_/g, ' ')}</span>
                         </div>
                     {/each}
@@ -392,26 +383,6 @@
         flex: 1;
         overflow-y: auto;
         padding: 0 12px 24px;
-    }
-
-    .section {
-        margin-bottom: 24px;
-    }
-
-    .section-header {
-        padding: 8px 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
-    }
-
-    .section-title {
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--text-dim);
-        font-weight: 600;
     }
 
     .dir-item {
