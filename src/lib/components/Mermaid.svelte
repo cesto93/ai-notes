@@ -37,20 +37,20 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        background: rgba(15, 23, 42, 0.5);
+        background: rgba(15, 23, 42, 0.03);
         padding: 30px;
         border-radius: 12px;
         overflow-x: auto;
-        border: 1px solid var(--border);
+        border: 1px solid var(--paper-border);
 
         --pele-bg: transparent;
-        --pele-fg: #e2e8f0;
-        --pele-muted: #94a3b8;
-        --pele-line: #cbd5e1;
-        --pele-surface: rgba(30, 41, 59, 0.8);
-        --pele-surface-alt: rgba(51, 65, 85, 0.8);
-        --pele-border: #475569;
-        --pele-accent: #60a5fa;
+        --pele-fg: #1e293b;
+        --pele-muted: #64748b;
+        --pele-line: #94a3b8;
+        --pele-surface: rgba(226, 232, 240, 0.6);
+        --pele-surface-alt: rgba(203, 213, 225, 0.7);
+        --pele-border: #94a3b8;
+        --pele-accent: #2563eb;
         --pele-font: sans-serif;
     }
 

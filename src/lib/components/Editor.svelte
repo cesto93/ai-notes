@@ -75,9 +75,7 @@
         display: flex;
         flex-direction: column;
         height: 100%;
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 40px 20px;
+        padding: 40px 4px 40px 48px;
     }
 
     .editor-header {
@@ -99,7 +97,7 @@
         font-weight: 700;
         background: transparent;
         border: none;
-        color: white;
+        color: var(--paper-text);
         outline: none;
         padding: 0;
         margin: 0;
@@ -107,18 +105,18 @@
     }
 
     .title-input::placeholder {
-        color: var(--text-dim);
+        color: var(--paper-text-dim);
         opacity: 0.5;
     }
 
     .directory-tag {
         align-self: flex-start;
-        background: var(--glass);
+        background: rgba(59, 130, 246, 0.1);
         padding: 4px 12px;
         border-radius: 20px;
         font-size: 0.8rem;
         color: var(--accent);
-        border: 1px solid var(--border);
+        border: 1px solid rgba(59, 130, 246, 0.25);
     }
 
     .actions {
@@ -142,12 +140,12 @@
     }
 
     .cancel-btn {
-        color: var(--text-dim);
+        color: var(--paper-text-dim);
         padding: 10px 20px;
     }
 
     .cancel-btn:hover {
-        color: white;
+        color: var(--paper-text);
     }
 
     .form {
@@ -174,6 +172,13 @@
         resize: none;
         font-size: 1.1rem;
         line-height: 1.6;
+        background: transparent;
+        border: none;
+        color: var(--paper-text);
+    }
+
+    textarea::placeholder {
+        color: var(--paper-text-dim);
     }
 
     :global(.icon-gap) { margin-right: 8px; }

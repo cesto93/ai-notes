@@ -1,7 +1,7 @@
 :root {
   color-scheme: dark;
   --bg-color: #030303;
-  --sidebar-bg: rgba(20, 20, 20, 0.8);
+  --sidebar-bg: #1e293b;
   --card-bg: rgba(30, 30, 30, 0.4);
   --bg-card: rgba(20, 20, 20, 0.95);
   --bg-input: rgba(255, 255, 255, 0.06);
@@ -16,6 +16,12 @@
   --border: rgba(255, 255, 255, 0.1);
   --glass: rgba(255, 255, 255, 0.03);
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Reading surface (note area) — light paper for readability */
+  --paper: #faf9f6;
+  --paper-text: #24292e;
+  --paper-text-dim: #57606a;
+  --paper-border: rgba(15, 23, 42, 0.14);
+  --paper-hover: rgba(15, 23, 42, 0.05);
 }
 
 * {

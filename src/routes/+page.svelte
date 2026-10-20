@@ -121,7 +121,9 @@
     .content-area {
         flex: 1;
         overflow: hidden;
-        background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.05), transparent);
+        color-scheme: light;
+        background-color: var(--paper);
+        background-image: radial-gradient(circle at top right, rgba(59, 130, 246, 0.06), transparent);
     }
 
     .empty-state {
@@ -131,7 +133,11 @@
         align-items: center;
         justify-content: center;
         text-align: center;
-        color: var(--text-dim);
+        color: var(--paper-text-dim);
+    }
+
+    .empty-state h2 {
+        color: var(--paper-text);
     }
 
     .empty-icon {
