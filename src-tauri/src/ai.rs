@@ -83,6 +83,7 @@ pub async fn call_gemini(text: String, prompt: &str, settings: Settings) -> Resu
 
 const OPENROUTER_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
 const OLLAMA_URL: &str = "http://localhost:11434/v1/chat/completions";
+const LLAMACPP_URL: &str = "http://localhost:8080/v1/chat/completions";
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct OpenAIRequest {
@@ -159,6 +160,7 @@ pub async fn call_llm(text: String, prompt: &str, settings: Settings) -> Result<
         "google" => call_gemini(text, prompt, settings).await,
         "openrouter" => call_openai_compatible(OPENROUTER_URL, Some("OPENROUTER_API_KEY"), text, prompt, settings).await,
         "ollama" => call_openai_compatible(OLLAMA_URL, None, text, prompt, settings).await,
+        "llamacpp" => call_openai_compatible(LLAMACPP_URL, None, text, prompt, settings).await,
         other => Err(format!("Unsupported provider: {}", other)),
     }
 }

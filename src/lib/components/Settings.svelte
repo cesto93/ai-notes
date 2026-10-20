@@ -10,13 +10,15 @@
     const providers = [
         { id: 'google', name: 'Google (Gemini)' },
         { id: 'openrouter', name: 'OpenRouter' },
-        { id: 'ollama', name: 'Ollama (Local)' }
+        { id: 'ollama', name: 'Ollama (Local)' },
+        { id: 'llamacpp', name: 'llama.cpp (Local)' }
     ];
 
     const models: Record<string, string[]> = {
         google: ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3-flash-preview', 'gemini-3.1-pro-preview'],
         openrouter: ['openai/gpt-4o-mini', 'anthropic/claude-3.5-sonnet', 'deepseek/deepseek-chat', 'meta-llama/llama-3.3-70b-instruct', 'google/gemini-2.0-flash-001'],
-        ollama: ['ministral', 'granite4:tiny-h', 'olmo-3:7b-instruct']
+        ollama: ['ministral', 'granite4:tiny-h', 'olmo-3:7b-instruct'],
+        llamacpp: ['llama-3.3-70b-instruct']
     };
 
     onMount(async () => {
@@ -60,14 +62,18 @@
 
         <div class="form-group">
             <label for="model">Model</label>
-            {#if settings.provider === 'openrouter'}
+            {#if settings.provider === 'openrouter' || settings.provider === 'llamacpp'}
                 <input
                     type="text"
                     id="model"
                     bind:value={settings.model}
-                    placeholder="vendor/model (e.g. openai/gpt-4o-mini)"
+                    placeholder={settings.provider === 'llamacpp' ? 'model name (e.g. llama-3.3-70b-instruct)' : 'vendor/model (e.g. openai/gpt-4o-mini)'}
                 />
-                <p class="hint">Use any OpenRouter model ID (vendor/model format). Ensure OPENROUTER_API_KEY is set in your .env file.</p>
+                {#if settings.provider === 'openrouter'}
+                    <p class="hint">Use any OpenRouter model ID (vendor/model format). Ensure OPENROUTER_API_KEY is set in your .env file.</p>
+                {:else}
+                    <p class="hint">Ensure llama-server is running on localhost:8080 with your model loaded. The model name is informational — llama-server serves the model passed at startup.</p>
+                {/if}
             {:else}
                 <select id="model" bind:value={settings.model}>
                     {#each models[settings.provider] as model}
